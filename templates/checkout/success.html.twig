@@ -1,0 +1,16 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription confirmée — OPP{% endblock %}
+
+{% block body %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6 text-center py-5">
+        <h1 class="display-4 mb-3">🎉</h1>
+        <h2 class="mb-3">Merci pour votre inscription !</h2>
+        <p class="text-muted mb-4">
+            Votre paiement a bien été pris en compte. Vous recevrez un e-mail de confirmation de Stripe.
+        </p>
+        <a href="{{ path('checkout_index') }}" class="btn btn-outline-primary">Retour à l'accueil</a>
+    </div>
+</div>
+{% endblock %}

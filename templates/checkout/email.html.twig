@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Finaliser l'inscription — OPP{% endblock %}
+
+{% block body %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <h2 class="mb-4">Finaliser votre inscription</h2>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="card-subtitle text-muted mb-1">Cours choisi</h6>
+                <p class="card-text fw-bold mb-0">{{ product_name }}</p>
+                <p class="card-text text-muted small">{{ price_description }}</p>
+            </div>
+        </div>
+
+        <form method="post" action="{{ path('checkout_create_session') }}">
+            <input type="hidden" name="price_id" value="{{ price_id }}">
+            <input type="hidden" name="lookup_key" value="{{ lookup_key }}">
+
+            <div class="mb-4">
+                <label for="email" class="form-label fw-bold">Adresse e-mail</label>
+                <input type="email" class="form-control" id="email" name="email"
+                       required placeholder="votre@email.com"
+                       {% if email %}value="{{ email }}"{% endif %}>
+            </div>
+
+            {% if not has_membership %}
+            <div class="card mb-4 border-primary">
+                <div class="card-body">
+                    <h6 class="card-title">Adhésion {{ school_year }}</h6>
+                    <p class="text-muted small mb-2">L'adhésion est obligatoire pour toute inscription. Prix libre (minimum 1€).</p>
+                    <div class="input-group" style="max-width: 200px;">
+                        <input type="number" class="form-control" name="adhesion_amount"
+                               min="1" step="1" value="10" required>
+                        <span class="input-group-text">€</span>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-success mb-4">
+                ✓ Adhésion {{ school_year }} déjà réglée
+            </div>
+            <input type="hidden" name="adhesion_amount" value="0">
+            {% endif %}
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h6 class="card-title">Souhaitez-vous ajouter un don ?</h6>
+                    <p class="text-muted small mb-3">Soutenez l'association avec un don libre.</p>
+                    <div class="btn-group mb-2" role="group">
+                        <input type="radio" class="btn-check" name="donation_preset" id="don-0" value="0" checked>
+                        <label class="btn btn-outline-secondary btn-sm" for="don-0">Pas de don</label>
+
+                        <input type="radio" class="btn-check" name="donation_preset" id="don-5" value="5">
+                        <label class="btn btn-outline-secondary btn-sm" for="don-5">5€</label>
+
+                        <input type="radio" class="btn-check" name="donation_preset" id="don-10" value="10">
+                        <label class="btn btn-outline-secondary btn-sm" for="don-10">10€</label>
+
+                        <input type="radio" class="btn-check" name="donation_preset" id="don-20" value="20">
+                        <label class="btn btn-outline-secondary btn-sm" for="don-20">20€</label>
+
+                        <input type="radio" class="btn-check" name="donation_preset" id="don-custom" value="custom">
+                        <label class="btn btn-outline-secondary btn-sm" for="don-custom">Autre</label>
+                    </div>
+                    <div class="input-group mt-2" style="max-width: 200px; display: none;" id="custom-donation-group">
+                        <input type="number" class="form-control" name="donation_custom_amount"
+                               min="1" step="1" placeholder="Montant">
+                        <span class="input-group-text">€</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">Passer au paiement</button>
+            </div>
+
+            <p class="text-center text-muted small mt-3">
+                Vous serez redirigé vers Stripe pour le paiement sécurisé.
+            </p>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.querySelectorAll('input[name="donation_preset"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+        document.getElementById('custom-donation-group').style.display =
+            this.value === 'custom' ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

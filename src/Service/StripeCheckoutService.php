@@ -34,6 +34,20 @@ class StripeCheckoutService
         return $year . '-' . ($year + 1);
     }
 
+    public function getPrice(string $priceId): ?\Stripe\Price
+    {
+        try {
+            return $this->stripeClient->prices->retrieve($priceId);
+        } catch (\Stripe\Exception\InvalidRequestException) {
+            return null;
+        }
+    }
+
+    public function getProduct(string $productId): \Stripe\Product
+    {
+        return $this->stripeClient->products->retrieve($productId);
+    }
+
     public function fetchProductsByCategory(string $category): array
     {
         $products = [];

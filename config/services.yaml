@@ -17,6 +17,7 @@ services:
             $endpointSecret: '%env(STRIPE_WEBHOOK_SECRET)%'
             $adhesionProductId: '%env(ADHESION_PRODUCT_ID)%'
             $donationProductId: '%env(DONATION_PRODUCT_ID)%'
+            $projectDir: '%kernel.project_dir%'
 
     App\:
         resource: '../src/'

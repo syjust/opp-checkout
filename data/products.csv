@@ -1,0 +1,24 @@
+product_name,opp_category,price_lookup_key,amount_cents,currency,billing_type,interval,interval_count,description
+Cours particulier 1h (instrument),cours-unite,cours-particulier-1h-unique,2500,eur,one_time,,,Cours particulier d'1h pour une séance de cours d'instrument
+Cours collectif Café Bételno / année,cours-annee,cafe-betelno-mensuel-9x,6500,eur,recurring,month,1,Cours collectif Café Bételno — 25 cours par an (1h par semaine)
+Cours collectif Café Bételno / année,cours-annee,cafe-betelno-trimestriel-3x,19500,eur,recurring,month,3,Cours collectif Café Bételno — 25 cours par an (1h par semaine)
+Orchestre Marseille sans réduction / année,cours-annee,orchestre-marseille-mensuel-9x,6500,eur,recurring,month,1,"Orchestre Marseille sans réduction — 2 ateliers par mois, réglable en 3 fois"
+Orchestre Marseille sans réduction / année,cours-annee,orchestre-marseille-trimestriel-3x,19500,eur,recurring,month,3,"Orchestre Marseille sans réduction — 2 ateliers par mois, réglable en 3 fois"
+Orchestre Marseille avec réduction (1 atelier),cours-annee,orchestre-marseille-reduc1-mensuel-9x,2800,eur,recurring,month,1,Orchestre Marseille avec réduction 1 atelier — pour les personnes qui font le Guinguette Orchestra
+Orchestre Marseille avec réduction (1 atelier),cours-annee,orchestre-marseille-reduc1-trimestriel-3x,8400,eur,recurring,month,3,Orchestre Marseille avec réduction 1 atelier — pour les personnes qui font le Guinguette Orchestra
+Orchestre Marseille avec réduction (2 séances),cours-annee,orchestre-marseille-reduc2-mensuel-9x,3300,eur,recurring,month,1,"Orchestre Marseille avec réduction 2 séances — pour les personnes inscrites au cours d'instruments hebdomadaires"
+Orchestre Marseille avec réduction (2 séances),cours-annee,orchestre-marseille-reduc2-trimestriel-3x,10000,eur,recurring,month,3,"Orchestre Marseille avec réduction 2 séances — pour les personnes inscrites au cours d'instruments hebdomadaires"
+Guinguette Orchestra Marseille sans réduction,cours-annee,guinguette-marseille-mensuel-9x,5600,eur,recurring,month,1,"Guinguette Orchestra Marseille sans réduction — 1 atelier par mois, réglable en 3 fois"
+Guinguette Orchestra Marseille sans réduction,cours-annee,guinguette-marseille-trimestriel-3x,16800,eur,recurring,month,3,"Guinguette Orchestra Marseille sans réduction — 1 atelier par mois, réglable en 3 fois"
+Guinguette Orchestra Marseille avec réduction (1 séance),cours-annee,guinguette-marseille-reduc-mensuel-9x,1700,eur,recurring,month,1,"Guinguette Orchestra Marseille avec réduction — pour les personnes inscrites au cours d'instruments hebdomadaires ou atelier mensuel"
+Guinguette Orchestra Marseille avec réduction (1 séance),cours-annee,guinguette-marseille-reduc-trimestriel-3x,5000,eur,recurring,month,3,"Guinguette Orchestra Marseille avec réduction — pour les personnes inscrites au cours d'instruments hebdomadaires ou atelier mensuel"
+Guinguette Orchestra Aix-en-Provence sans réduction,cours-annee,guinguette-aix-mensuel-9x,2500,eur,recurring,month,1,"Guinguette Orchestra Aix-en-Provence sans réduction — 1 atelier par mois, réglable en 3 fois"
+Guinguette Orchestra Aix-en-Provence sans réduction,cours-annee,guinguette-aix-trimestriel-3x,7500,eur,recurring,month,3,"Guinguette Orchestra Aix-en-Provence sans réduction — 1 atelier par mois, réglable en 3 fois"
+Guinguette Orchestra Aix-en-Provence avec réduction,cours-annee,guinguette-aix-reduc-mensuel-9x,1500,eur,recurring,month,1,"Guinguette Orchestra Aix-en-Provence avec réduction — cours d'instruments hebdomadaires ou atelier mensuel, réglable en 9 fois"
+Guinguette Orchestra Aix-en-Provence avec réduction,cours-annee,guinguette-aix-reduc-trimestriel-3x,4500,eur,recurring,month,3,"Guinguette Orchestra Aix-en-Provence avec réduction — cours d'instruments hebdomadaires ou atelier mensuel, réglable en 3 fois"
+Atelier d'accordéon diatonique 3h (Aix-en-Provence),cours-annee,accordeon-aix-mensuel-9x,3500,eur,recurring,month,1,"Atelier d'accordéon diatonique 3h tous niveaux Aix-en-Provence — pour les personnes qui participent aux stages de l'été"
+Atelier d'accordéon diatonique 3h (Aix-en-Provence),cours-annee,accordeon-aix-trimestriel-3x,10500,eur,recurring,month,3,"Atelier d'accordéon diatonique 3h tous niveaux Aix-en-Provence — pour les personnes qui participent aux stages de l'été"
+Atelier d'accordéon diatonique 3h (Aubagne),cours-annee,accordeon-aubagne-mensuel-9x,3300,eur,recurring,month,1,"Atelier d'accordéon diatonique 3h tous niveaux Aubagne MIDI Pro-Am — 15 ateliers dans l'année"
+Atelier d'accordéon diatonique 3h (Aubagne),cours-annee,accordeon-aubagne-trimestriel-3x,10000,eur,recurring,month,3,"Atelier d'accordéon diatonique 3h tous niveaux Aubagne MIDI Pro-Am — 15 ateliers dans l'année"
+Adhésion 2026-2027,adhesion,adhesion-2026-2027,0,eur,one_time,,,Adhésion annuelle à l'OPP — prix libre (minimum 1€)
+Don à l'OPP,don,don-opp,0,eur,one_time,,,Don à l'association L'Oreille Presque Parfaite

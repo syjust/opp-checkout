@@ -4,7 +4,14 @@
 
 {% block body %}
 <h1 class="mb-4">Inscription aux cours et ateliers de musique</h1>
-<p class="text-muted mb-4">Tarifs {{ school_year }} — Choisissez votre cours puis votre rythme de paiement.</p>
+<p class="text-muted mb-3">Tarifs {{ school_year }} — Choisissez votre cours puis votre rythme de paiement.</p>
+
+<div class="form-check mb-4">
+    <input class="form-check-input" type="checkbox" id="reduction-toggle">
+    <label class="form-check-label" for="reduction-toggle">
+        Je suis inscrit(e) à un cours d'instrument hebdomadaire ou un atelier mensuel <small class="text-muted">(tarif réduit)</small>
+    </label>
+</div>
 
 <ul class="nav nav-tabs mb-4" role="tablist">
     {% for cat_key, cat_label in categories %}
@@ -34,6 +41,13 @@
             {% else %}
                 <div class="row g-4">
                     {% for item in cat_products %}
+                        {% set has_reduced = false %}
+                        {% for price in item.prices %}
+                            {% if is_reduced_price(price) %}
+                                {% set has_reduced = true %}
+                            {% endif %}
+                        {% endfor %}
+
                         <div class="col-md-6 col-lg-4">
                             <div class="card h-100">
                                 <div class="card-body">
@@ -44,13 +58,22 @@
 
                                     <div class="d-grid gap-2 mt-3">
                                         {% for price in item.prices %}
+                                            {% set reduced = is_reduced_price(price) %}
+                                            {% set annual = price_annual_total(price) %}
                                             {% set label = price_label(price) %}
+
                                             <a href="{{ path('checkout_email', {
-                                                price_id: price.id,
-                                                lookup_key: price.lookup_key | default(''),
-                                            }) }}"
-                                               class="btn btn-outline-primary btn-sm">
-                                                {{ label }}
+                                                    price_id: price.id,
+                                                    lookup_key: price.lookup_key | default(''),
+                                                }) }}"
+                                               class="btn btn-outline-primary btn-sm price-btn{% if has_reduced %} {{ reduced ? 'price-reduced' : 'price-normal' }}{% endif %}"
+                                               {% if has_reduced and reduced %}style="display: none;"{% endif %}>
+                                                {% if annual %}
+                                                    <span class="fw-bold">{{ annual|format_euros }}/an</span>
+                                                    <br><small>{{ label }}</small>
+                                                {% else %}
+                                                    {{ label }}
+                                                {% endif %}
                                             </a>
                                         {% endfor %}
                                     </div>
@@ -63,4 +86,18 @@
         </div>
     {% endfor %}
 </div>
+{% endblock %}
+
+{% block javascripts %}
+<script>
+document.getElementById('reduction-toggle').addEventListener('change', function() {
+    var reduced = this.checked;
+    document.querySelectorAll('.price-normal').forEach(function(el) {
+        el.style.display = reduced ? 'none' : '';
+    });
+    document.querySelectorAll('.price-reduced').forEach(function(el) {
+        el.style.display = reduced ? '' : 'none';
+    });
+});
+</script>
 {% endblock %}

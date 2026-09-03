@@ -81,6 +81,12 @@ class ProductsCreateCommand extends Command
 
             foreach ($productRows as $row) {
                 $lookupKey = $row['price_lookup_key'];
+                $amountCents = (int) $row['amount_cents'];
+
+                if ($amountCents === 0) {
+                    $io->text("    ⊘ Prix libre: <comment>$lookupKey</comment> — no Stripe price needed");
+                    continue;
+                }
 
                 if (\in_array($lookupKey, $existingPriceLookupKeys, true)) {
                     $io->text("    ⏭ Price exists: <comment>$lookupKey</comment>");
@@ -90,16 +96,13 @@ class ProductsCreateCommand extends Command
 
                 $priceData = [
                     'currency' => $row['currency'],
+                    'unit_amount' => $amountCents,
                     'lookup_key' => $lookupKey,
                     'metadata' => ['opp_category' => $row['opp_category']],
                 ];
 
                 if ($stripeProduct) {
                     $priceData['product'] = $stripeProduct->id;
-                }
-
-                if ($row['amount_cents'] > 0) {
-                    $priceData['unit_amount'] = (int) $row['amount_cents'];
                 }
 
                 if ($row['billing_type'] === 'recurring') {
@@ -109,10 +112,7 @@ class ProductsCreateCommand extends Command
                     ];
                 }
 
-                $displayAmount = $row['amount_cents'] > 0
-                    ? number_format($row['amount_cents'] / 100, 2) . '€'
-                    : 'prix libre';
-
+                $displayAmount = number_format($amountCents / 100, 2) . '€';
                 $io->text("    ✚ Creating price: <comment>$lookupKey</comment> ($displayAmount)");
 
                 if (!$dryRun && $stripeProduct) {

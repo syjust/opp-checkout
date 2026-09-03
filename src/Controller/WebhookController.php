@@ -52,6 +52,8 @@ class WebhookController extends AbstractController
 
     private function handleCheckoutCompleted(object $session): void
     {
+        $this->applyCancelAtIfNeeded($session);
+
         $adhesionAmountCents = (int) ($session->metadata['adhesion_amount_cents'] ?? 0);
 
         if ($adhesionAmountCents <= 0) {
@@ -87,6 +89,30 @@ class WebhookController extends AbstractController
             'email' => $email,
             'year' => $schoolYear,
             'amount' => $adhesionAmountCents,
+        ]);
+    }
+
+    private function applyCancelAtIfNeeded(object $session): void
+    {
+        $subscriptionId = $session->subscription ?? null;
+        if (!$subscriptionId) {
+            return;
+        }
+
+        $subscription = $this->stripeClient->subscriptions->retrieve($subscriptionId);
+        $cancelAt = $subscription->metadata['cancel_at'] ?? null;
+
+        if (!$cancelAt) {
+            return;
+        }
+
+        $this->stripeClient->subscriptions->update($subscriptionId, [
+            'cancel_at' => (int) $cancelAt,
+        ]);
+
+        $this->logger->info('Subscription cancel_at set', [
+            'subscription' => $subscriptionId,
+            'cancel_at' => date('Y-m-d', (int) $cancelAt),
         ]);
     }
 }

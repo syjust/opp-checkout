@@ -131,7 +131,9 @@ class StripeCheckoutService
             $params['mode'] = 'subscription';
             $cancelAt = $this->computeCancelAt($priceLookupKey);
             if ($cancelAt) {
-                $params['subscription_data'] = ['cancel_at' => $cancelAt];
+                $params['subscription_data'] = [
+                    'metadata' => ['cancel_at' => (string) $cancelAt],
+                ];
             }
         } else {
             $params['mode'] = 'payment';

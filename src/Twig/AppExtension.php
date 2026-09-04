@@ -9,12 +9,20 @@ use Twig\TwigFilter;
 
 class AppExtension extends AbstractExtension
 {
+    private ?string $cachedVersion = null;
+
+    public function __construct(
+        private readonly string $projectDir,
+    ) {
+    }
+
     public function getFunctions(): array
     {
         return [
             new TwigFunction('price_label', $this->priceLabel(...)),
             new TwigFunction('price_annual_total', $this->priceAnnualTotal(...)),
             new TwigFunction('is_reduced_price', $this->isReducedPrice(...)),
+            new TwigFunction('app_version', $this->appVersion(...)),
         ];
     }
 
@@ -76,6 +84,27 @@ class AppExtension extends AbstractExtension
     public function formatEuros(int $cents): string
     {
         return number_format($cents / 100, 0, ',', ' ') . ' €';
+    }
+
+    public function appVersion(): string
+    {
+        if ($this->cachedVersion !== null) {
+            return $this->cachedVersion;
+        }
+
+        $versionFile = $this->projectDir . '/VERSION';
+        if (file_exists($versionFile)) {
+            return $this->cachedVersion = trim(file_get_contents($versionFile));
+        }
+
+        $branch = trim(shell_exec('git -C ' . escapeshellarg($this->projectDir) . ' rev-parse --abbrev-ref HEAD 2>/dev/null') ?: '');
+        $hash = trim(shell_exec('git -C ' . escapeshellarg($this->projectDir) . ' rev-parse --short HEAD 2>/dev/null') ?: '');
+
+        if ($hash) {
+            return $this->cachedVersion = 'dev' . ($branch ? "-{$branch}" : '') . "-{$hash}";
+        }
+
+        return $this->cachedVersion = 'dev';
     }
 
     private function parseInstallments(string $lookupKey): ?int

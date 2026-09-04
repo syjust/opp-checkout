@@ -189,9 +189,9 @@ bin/console opp:products:create 2027-2028
 
 ---
 
-## v2.0 — Panier multi-cours
+## v1.2.0 — Panier multi-cours
 
-Refonte majeure de l'UX : passer d'une sélection mono-produit à un **panier avec checkout en une page**.
+Évolution de l'UX : passer d'une sélection mono-produit à un **panier avec checkout en une page**.
 
 ### Sélection des cours
 

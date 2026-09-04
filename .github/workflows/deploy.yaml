@@ -1,0 +1,84 @@
+name: Deploy
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write VERSION
+        run: echo "${{ github.ref_name }}" > VERSION
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.OVH_HOST }} >> ~/.ssh/known_hosts
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.OVH_HOST }}
+          USER: ${{ secrets.OVH_USER }}
+          DEPLOY_PATH: ${{ secrets.OVH_DEPLOY_PATH }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          SSH="ssh -i ~/.ssh/deploy_key ${USER}@${HOST}"
+
+          # Ensure directory structure exists
+          $SSH "mkdir -p ${DEPLOY_PATH}/releases ${DEPLOY_PATH}/shared/var"
+
+          # Rsync build to releases/<tag>
+          rsync -azP --delete \
+            --exclude='.git/' \
+            --exclude='.env.local' \
+            --exclude='var/' \
+            --exclude='vendor/' \
+            --exclude='node_modules/' \
+            -e "ssh -i ~/.ssh/deploy_key" \
+            ./ "${USER}@${HOST}:${DEPLOY_PATH}/releases/${TAG}/"
+
+          # Install vendor, symlink shared files, migrate, switch
+          $SSH bash <<REMOTE
+            set -e
+            cd ${DEPLOY_PATH}/releases/${TAG}
+
+            # Install dependencies on server
+            composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+            # Symlink shared resources
+            ln -sfn ../../.env.local .env.local
+            rm -rf var
+            ln -sfn ../../shared/var var
+
+            # Run migrations
+            php bin/console doctrine:migrations:migrate --no-interaction
+
+            # Warm up cache
+            php bin/console cache:warmup --env=prod
+
+            # Atomic symlink switch
+            cd ${DEPLOY_PATH}
+            ln -sfn releases/${TAG} htdocs
+
+            # Keep last 5 releases
+            cd releases
+            ls -1dt v* 2>/dev/null | tail -n +6 | xargs -r rm -rf
+          REMOTE

@@ -19,10 +19,12 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
 
       - name: Install dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+        env:
+          APP_ENV: prod
 
       - name: Setup SSH
         run: |
@@ -61,7 +63,7 @@ jobs:
             cd ${DEPLOY_PATH}/releases/${TAG}
 
             # Install dependencies on server
-            composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+            APP_ENV=prod composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 
             # Symlink shared resources
             ln -sfn ../../.env.local .env.local

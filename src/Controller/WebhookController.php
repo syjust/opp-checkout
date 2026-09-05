@@ -105,7 +105,7 @@ class WebhookController extends AbstractController
             'phases' => [
                 [
                     'items' => $phaseItems,
-                    'start_date' => $startDate,
+                    'start_date' => 'now',
                     'end_date' => $endDate,
                 ],
             ],

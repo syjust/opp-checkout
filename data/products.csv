@@ -1,22 +1,11 @@
-product_name,opp_category,price_lookup_key,amount_cents,currency,billing_type,interval,interval_count,description
-Cours particulier 1h (instrument),cours-unite,cours-particulier-1h-unique,2500,eur,one_time,,,Cours particulier d'1h — tout instrument
-Cours d'instruments hebdomadaire / année,cours-annee,cours-instruments-mensuel-9x,6500,eur,recurring,month,1,"Cours individuel (40 min) ou collectif (1h) — accordéon diatonique, mandole, mandoline, guitare, banjo, luth, derbouka, bendir, nay"
-Cours d'instruments hebdomadaire / année,cours-annee,cours-instruments-trimestriel-3x,19500,eur,recurring,month,3,"Cours individuel (40 min) ou collectif (1h) — accordéon diatonique, mandole, mandoline, guitare, banjo, luth, derbouka, bendir, nay"
-Atelier Café Belsunce / année,cours-annee,cafe-belsunce-mensuel-9x,6500,eur,recurring,month,1,Atelier collectif Café Belsunce
-Atelier Café Belsunce / année,cours-annee,cafe-belsunce-trimestriel-3x,19500,eur,recurring,month,3,Atelier collectif Café Belsunce
-Guinguette Orchestra Marseille (2 ateliers par mois) / année,cours-annee,guinguette-marseille-2x-mensuel-10x,5000,eur,recurring,month,1,20 séances à l'année (mardi soir et samedi matin)
-Guinguette Orchestra Marseille (2 ateliers par mois) / année,cours-annee,guinguette-marseille-2x-reduc-mensuel-10x,3000,eur,recurring,month,1,20 séances à l'année (mardi soir et samedi matin) — pour les personnes inscrites à un cours d'instrument hebdomadaire ou un atelier mensuel
-Guinguette Orchestra Marseille (2 ateliers par mois) / année,cours-annee,guinguette-marseille-2x-reduc-trimestriel-3x,10000,eur,recurring,month,3,20 séances à l'année (mardi soir et samedi matin) — pour les personnes inscrites à un cours d'instrument hebdomadaire ou un atelier mensuel
-Guinguette Orchestra Marseille (1 atelier par mois) / année,cours-annee,guinguette-marseille-1x-mensuel-10x,2500,eur,recurring,month,1,10 séances à l'année (mardi soir ou samedi matin)
-Guinguette Orchestra Marseille (1 atelier par mois) / année,cours-annee,guinguette-marseille-1x-reduc-mensuel-10x,1500,eur,recurring,month,1,10 séances à l'année (mardi soir ou samedi matin) — pour les personnes inscrites à un cours d'instrument hebdomadaire ou un atelier mensuel
-Guinguette Orchestra Marseille (1 atelier par mois) / année,cours-annee,guinguette-marseille-1x-reduc-trimestriel-3x,5000,eur,recurring,month,3,10 séances à l'année (mardi soir ou samedi matin) — pour les personnes inscrites à un cours d'instrument hebdomadaire ou un atelier mensuel
-Guinguette Orchestra Aix-en-Provence / année,cours-annee,guinguette-aix-mensuel-9x,2500,eur,recurring,month,1,9 séances à l'année
-Guinguette Orchestra Aix-en-Provence / année,cours-annee,guinguette-aix-trimestriel-3x,7500,eur,recurring,month,3,9 séances à l'année
-Guinguette Orchestra Aix-en-Provence / année,cours-annee,guinguette-aix-reduc-mensuel-9x,1500,eur,recurring,month,1,9 séances à l'année — pour les personnes inscrites à un cours d'instrument hebdomadaire ou un atelier mensuel
-Guinguette Orchestra Aix-en-Provence / année,cours-annee,guinguette-aix-reduc-trimestriel-3x,4500,eur,recurring,month,3,9 séances à l'année — pour les personnes inscrites à un cours d'instrument hebdomadaire ou un atelier mensuel
-Atelier d'accordéon diatonique 3h Aix-en-Provence / année,cours-annee,accordeon-aix-mensuel-9x,3500,eur,recurring,month,1,"9 ateliers dans l'année — stages d'Aix-en-Provence à l'Ostau (Parc Jourdan) et au Patio (Jas de Bouffan)"
-Atelier d'accordéon diatonique 3h Aix-en-Provence / année,cours-annee,accordeon-aix-trimestriel-3x,10500,eur,recurring,month,3,"9 ateliers dans l'année — stages d'Aix-en-Provence à l'Ostau (Parc Jourdan) et au Patio (Jas de Bouffan)"
-Atelier d'accordéon diatonique 3h Aubagne / année,cours-annee,accordeon-aubagne-mensuel-10x,3000,eur,recurring,month,1,10 ateliers dans l'année — tout niveau
-Atelier d'accordéon diatonique 3h Aubagne / année,cours-annee,accordeon-aubagne-trimestriel-3x,10000,eur,recurring,month,3,10 ateliers dans l'année — tout niveau
-Adhésion 2026-2027,adhesion,adhesion-2026-2027,0,eur,one_time,,,Adhésion annuelle à l'OPP — prix libre (minimum 1€)
-Don à l'OPP,don,don-opp,0,eur,one_time,,,Don à l'association L'Oreille Presque Parfaite
+slug,product_name,opp_category,opp_reduced_by,description,sessions_count,price_1x,price_3x,price_10x,price_1x_reduc,price_3x_reduc,price_10x_reduc
+cours-instruments,Cours d'instruments hebdomadaire,cours-annee,,"Cours individuel (40 min) ou collectif (1h) — accordéon diatonique, mandole, mandoline, guitare, banjo, luth, derbouka, bendir, nay",,58500,19500,5850,,,
+cafe-belsunce,Atelier Café Belsunce,cours-annee,,Atelier collectif Café Belsunce,,58500,19500,5850,,,
+guinguette-marseille-2x,Guinguette Orchestra Marseille (2 ateliers par mois),cours-annee,cours-instruments;accordeon-aix;accordeon-aubagne,20 séances à l'année (mardi soir et samedi matin),20,50000,16666,5000,30000,10000,3000
+guinguette-marseille-1x,Guinguette Orchestra Marseille (1 atelier par mois),cours-annee,cours-instruments;accordeon-aix;accordeon-aubagne,10 séances à l'année (mardi soir ou samedi matin),10,25000,8333,2500,15000,5000,1500
+guinguette-aix,Guinguette Orchestra Aix-en-Provence (9 ateliers par an),cours-annee,cours-instruments;accordeon-aix;accordeon-aubagne,9 séances à l'année,9,22500,7500,2250,13500,4500,1350
+accordeon-aix,Atelier d'accordéon diatonique Aix-en-Provence (3h),cours-annee,,"9 ateliers dans l'année — stages d'Aix-en-Provence à l'Ostau (Parc Jourdan) et au Patio (Jas de Bouffan)",9,31500,10500,3150,,,
+accordeon-aubagne,Atelier d'accordéon diatonique Aubagne (3h),cours-annee,,10 ateliers dans l'année — tout niveau,10,30000,10000,3000,,,
+cours-particulier-1h,Cours particulier 1h (instrument),cours-unite,,Cours particulier d'1h — tout instrument,1,2500,,,,
+adhesion,Adhésion,adhesion,,Adhésion annuelle à l'OPP — prix libre (minimum 1 €),,,,,,
+don-opp,Don à l'OPP,don,,Don à l'association L'Oreille Presque Parfaite,,,,,,

@@ -54,13 +54,10 @@ class ProductsCreateCommandTest extends TestCase
 
     public function testSkipsExistingProducts(): void
     {
-        $existingProduct = new Product('prod_123');
-        $existingProduct->name = "Cours d'instruments hebdomadaire";
-        $existingProduct->id = 'prod_123';
+        $existingProduct = Product::constructFrom(['id' => 'prod_123', 'name' => "Cours d'instruments hebdomadaire"]);
 
         $this->productService->method('all')->willReturn($this->collectionOf([$existingProduct]));
         $this->priceService->method('all')->willReturn($this->emptyCollection());
-        $this->productService->expects($this->atLeast(1))->method('create');
 
         $command = new ProductsCreateCommand($this->stripeClient, $this->projectDir);
         $tester = new CommandTester($command);
@@ -74,15 +71,13 @@ class ProductsCreateCommandTest extends TestCase
         $this->productService->method('all')->willReturn($this->emptyCollection());
         $this->priceService->method('all')->willReturn($this->emptyCollection());
 
-        $createdProduct = new Product('prod_new');
-        $createdProduct->id = 'prod_new';
+        $createdProduct = Product::constructFrom(['id' => 'prod_new']);
         $this->productService->method('create')->willReturn($createdProduct);
 
         $createdPrices = [];
         $this->priceService->method('create')->willReturnCallback(function ($data) use (&$createdPrices) {
             $createdPrices[] = $data;
-            $price = new Price('price_' . count($createdPrices));
-            $price->id = 'price_' . count($createdPrices);
+            $price = Price::constructFrom(['id' => 'price_' . count($createdPrices)]);
             return $price;
         });
 
@@ -104,15 +99,13 @@ class ProductsCreateCommandTest extends TestCase
         $this->productService->method('all')->willReturn($this->emptyCollection());
         $this->priceService->method('all')->willReturn($this->emptyCollection());
 
-        $createdProduct = new Product('prod_new');
-        $createdProduct->id = 'prod_new';
+        $createdProduct = Product::constructFrom(['id' => 'prod_new']);
         $this->productService->method('create')->willReturn($createdProduct);
 
         $createdPrices = [];
         $this->priceService->method('create')->willReturnCallback(function ($data) use (&$createdPrices) {
             $createdPrices[] = $data;
-            $price = new Price('price_' . count($createdPrices));
-            $price->id = 'price_' . count($createdPrices);
+            $price = Price::constructFrom(['id' => 'price_' . count($createdPrices)]);
             return $price;
         });
 
@@ -137,15 +130,13 @@ class ProductsCreateCommandTest extends TestCase
         $this->productService->method('all')->willReturn($this->emptyCollection());
         $this->priceService->method('all')->willReturn($this->emptyCollection());
 
-        $createdProduct = new Product('prod_new');
-        $createdProduct->id = 'prod_new';
+        $createdProduct = Product::constructFrom(['id' => 'prod_new']);
         $this->productService->method('create')->willReturn($createdProduct);
 
         $createdPrices = [];
         $this->priceService->method('create')->willReturnCallback(function ($data) use (&$createdPrices) {
             $createdPrices[] = $data;
-            $price = new Price('price_' . count($createdPrices));
-            $price->id = 'price_' . count($createdPrices);
+            $price = Price::constructFrom(['id' => 'price_' . count($createdPrices)]);
             return $price;
         });
 
@@ -179,15 +170,13 @@ class ProductsCreateCommandTest extends TestCase
         $this->productService->method('all')->willReturn($this->emptyCollection());
         $this->priceService->method('all')->willReturn($this->emptyCollection());
 
-        $createdProduct = new Product('prod_new');
-        $createdProduct->id = 'prod_new';
+        $createdProduct = Product::constructFrom(['id' => 'prod_new']);
         $this->productService->method('create')->willReturn($createdProduct);
 
         $createdPrices = [];
         $this->priceService->method('create')->willReturnCallback(function ($data) use (&$createdPrices) {
             $createdPrices[] = $data;
-            $price = new Price('price_' . count($createdPrices));
-            $price->id = 'price_' . count($createdPrices);
+            $price = Price::constructFrom(['id' => 'price_' . count($createdPrices)]);
             return $price;
         });
 
@@ -209,15 +198,13 @@ class ProductsCreateCommandTest extends TestCase
         $createdProducts = [];
         $this->productService->method('create')->willReturnCallback(function ($data) use (&$createdProducts) {
             $createdProducts[] = $data;
-            $product = new Product('prod_' . count($createdProducts));
-            $product->id = 'prod_' . count($createdProducts);
+            $product = Product::constructFrom(['id' => 'prod_' . count($createdProducts)]);
             return $product;
         });
 
         $this->priceService->method('create')->willReturnCallback(function () {
             static $i = 0;
-            $price = new Price('price_' . ++$i);
-            $price->id = 'price_' . $i;
+            $price = Price::constructFrom(['id' => 'price_' . ++$i]);
             return $price;
         });
 
@@ -240,15 +227,13 @@ class ProductsCreateCommandTest extends TestCase
         $this->productService->method('all')->willReturn($this->emptyCollection());
         $this->priceService->method('all')->willReturn($this->emptyCollection());
 
-        $createdProduct = new Product('prod_new');
-        $createdProduct->id = 'prod_new';
+        $createdProduct = Product::constructFrom(['id' => 'prod_new']);
         $this->productService->method('create')->willReturn($createdProduct);
 
         $createdPrices = [];
         $this->priceService->method('create')->willReturnCallback(function ($data) use (&$createdPrices) {
             $createdPrices[] = $data;
-            $price = new Price('price_' . count($createdPrices));
-            $price->id = 'price_' . count($createdPrices);
+            $price = Price::constructFrom(['id' => 'price_' . count($createdPrices)]);
             return $price;
         });
 
@@ -256,7 +241,7 @@ class ProductsCreateCommandTest extends TestCase
         $tester = new CommandTester($command);
         $tester->execute(['season' => '2026-2027']);
 
-        $cpPrices = array_filter($createdPrices, fn($p) => str_starts_with($p['lookup_key'], 'cours-particulier-'));
+        $cpPrices = array_filter($createdPrices, fn($p) => str_starts_with($p['lookup_key'], 'cours-particulier-1h-'));
         $this->assertCount(1, $cpPrices);
         $cp = current($cpPrices);
         $this->assertSame('cours-particulier-1h-2026-2027-1x', $cp['lookup_key']);

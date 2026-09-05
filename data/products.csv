@@ -6,6 +6,6 @@ guinguette-marseille-1x,Guinguette Orchestra Marseille (1 atelier par mois),cour
 guinguette-aix,Guinguette Orchestra Aix-en-Provence (9 ateliers par an),cours-annee,cours-instruments;accordeon-aix;accordeon-aubagne,9 séances à l'année,9,22500,7500,2250,13500,4500,1350
 accordeon-aix,Atelier d'accordéon diatonique Aix-en-Provence (3h),cours-annee,,"9 ateliers dans l'année — stages d'Aix-en-Provence à l'Ostau (Parc Jourdan) et au Patio (Jas de Bouffan)",9,31500,10500,3150,,,
 accordeon-aubagne,Atelier d'accordéon diatonique Aubagne (3h),cours-annee,,10 ateliers dans l'année — tout niveau,10,30000,10000,3000,,,
-cours-particulier-1h,Cours particulier 1h (instrument),cours-unite,,Cours particulier d'1h — tout instrument,1,2500,,,,
-adhesion,Adhésion,adhesion,,Adhésion annuelle à l'OPP — prix libre (minimum 1 €),,,,,,
-don-opp,Don à l'OPP,don,,Don à l'association L'Oreille Presque Parfaite,,,,,,
+cours-particulier-1h,Cours particulier 1h (instrument),cours-unite,,Cours particulier d'1h — tout instrument,1,2500,,,,,
+adhesion,Adhésion,adhesion,,Adhésion annuelle à l'OPP — prix libre (minimum 1 €),,,,,,,
+don-opp,Don à l'OPP,don,,Don à l'association L'Oreille Presque Parfaite,,,,,,,

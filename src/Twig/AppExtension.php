@@ -45,9 +45,9 @@ class AppExtension extends AbstractExtension
             return $amount;
         }
 
-        $installments = $this->parseInstallments($price->lookup_key ?? '');
+        $installments = (int) ($price->metadata['opp_installments'] ?? 0);
 
-        if ($installments) {
+        if ($installments > 0) {
             if ($price->recurring->interval_count === 1) {
                 return "{$amount}/mois x{$installments}";
             }
@@ -64,12 +64,17 @@ class AppExtension extends AbstractExtension
 
     public function priceAnnualTotal(Price $price): ?int
     {
-        if (!$price->unit_amount || !$price->recurring) {
+        $installments = (int) ($price->metadata['opp_installments'] ?? 0);
+
+        if (!$price->unit_amount) {
             return null;
         }
 
-        $installments = $this->parseInstallments($price->lookup_key ?? '');
-        if (!$installments) {
+        if (!$price->recurring) {
+            return $price->unit_amount;
+        }
+
+        if ($installments <= 0) {
             return null;
         }
 
@@ -78,7 +83,7 @@ class AppExtension extends AbstractExtension
 
     public function isReducedPrice(Price $price): bool
     {
-        return str_contains($price->lookup_key ?? '', '-reduc-');
+        return ($price->metadata['opp_reduced'] ?? null) === 'true';
     }
 
     public function formatEuros(int $cents): string
@@ -105,14 +110,5 @@ class AppExtension extends AbstractExtension
         }
 
         return $this->cachedVersion = 'dev';
-    }
-
-    private function parseInstallments(string $lookupKey): ?int
-    {
-        if (preg_match('/-(\d+)x$/', $lookupKey, $matches)) {
-            return (int) $matches[1];
-        }
-
-        return null;
     }
 }

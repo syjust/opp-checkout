@@ -3,17 +3,26 @@
 namespace App\Service;
 
 use App\Repository\MembershipRepository;
+use App\Repository\PurchaseRepository;
 use Stripe\Checkout\Session;
+use Stripe\Product;
 use Stripe\StripeClient;
 
 class StripeCheckoutService
 {
+    private const INSTALLMENTS = [
+        '1x' => null,
+        '3x' => 3,
+        '10x' => 10,
+    ];
+
+    private ?array $productsByCategory = null;
+
     public function __construct(
         private readonly StripeClient $stripeClient,
         private readonly MembershipRepository $membershipRepository,
+        private readonly PurchaseRepository $purchaseRepository,
         private readonly string $stripePublishableKey,
-        private readonly string $adhesionProductId,
-        private readonly string $donationProductId,
     ) {
     }
 
@@ -43,12 +52,52 @@ class StripeCheckoutService
         }
     }
 
-    public function getProduct(string $productId): \Stripe\Product
+    public function getProduct(string $productId): Product
     {
         return $this->stripeClient->products->retrieve($productId);
     }
 
-    public function fetchProductsByCategory(string $category): array
+    public function findProductByCategory(string $category): ?Product
+    {
+        $this->loadProducts();
+
+        return $this->productsByCategory[$category] ?? null;
+    }
+
+    public function isEligibleForReduction(string $email, string $schoolYear, Product $product): bool
+    {
+        $reducedBy = $product->metadata['opp_reduced_by'] ?? null;
+        if (!$reducedBy) {
+            return false;
+        }
+
+        $prefixes = explode(';', $reducedBy);
+
+        return $this->purchaseRepository->hasAnyMatchingLookupKeyPrefix($email, $schoolYear, $prefixes);
+    }
+
+    public function hasReductionEligiblePurchase(string $email, string $schoolYear): bool
+    {
+        $allProducts = $this->stripeClient->products->all(['active' => true, 'limit' => 100]);
+        $allPrefixes = [];
+
+        foreach ($allProducts->data as $product) {
+            $reducedBy = $product->metadata['opp_reduced_by'] ?? null;
+            if ($reducedBy) {
+                foreach (explode(';', $reducedBy) as $prefix) {
+                    $allPrefixes[$prefix] = true;
+                }
+            }
+        }
+
+        if (empty($allPrefixes)) {
+            return false;
+        }
+
+        return $this->purchaseRepository->hasAnyMatchingLookupKeyPrefix($email, $schoolYear, array_keys($allPrefixes));
+    }
+
+    public function fetchProductsByCategory(string $category, ?string $season = null): array
     {
         $products = [];
         $allProducts = $this->stripeClient->products->all(['active' => true, 'limit' => 100]);
@@ -64,9 +113,17 @@ class StripeCheckoutService
                 'limit' => 100,
             ]);
 
+            $filteredPrices = $prices->data;
+            if ($season !== null) {
+                $filteredPrices = array_values(array_filter(
+                    $filteredPrices,
+                    fn($price) => ($price->metadata['opp_season'] ?? null) === $season,
+                ));
+            }
+
             $products[] = [
                 'product' => $product,
-                'prices' => $prices->data,
+                'prices' => $filteredPrices,
             ];
         }
 
@@ -83,8 +140,8 @@ class StripeCheckoutService
 
     public function createCheckoutSession(
         string $email,
-        string $priceId,
-        string $priceLookupKey,
+        array $priceIds,
+        string $rhythm,
         int $adhesionAmountCents,
         int $donationAmountCents,
         string $successUrl,
@@ -92,28 +149,36 @@ class StripeCheckoutService
     ): Session {
         $lineItems = [];
 
-        $lineItems[] = ['price' => $priceId, 'quantity' => 1];
+        foreach ($priceIds as $priceId) {
+            $lineItems[] = ['price' => $priceId, 'quantity' => 1];
+        }
 
         if ($adhesionAmountCents > 0 && !$this->hasMembership($email)) {
-            $lineItems[] = [
-                'price_data' => [
-                    'currency' => 'eur',
-                    'unit_amount' => $adhesionAmountCents,
-                    'product' => $this->adhesionProductId,
-                ],
-                'quantity' => 1,
-            ];
+            $adhesionProduct = $this->findProductByCategory('adhesion');
+            if ($adhesionProduct) {
+                $lineItems[] = [
+                    'price_data' => [
+                        'currency' => 'eur',
+                        'unit_amount' => $adhesionAmountCents,
+                        'product' => $adhesionProduct->id,
+                    ],
+                    'quantity' => 1,
+                ];
+            }
         }
 
         if ($donationAmountCents > 0) {
-            $lineItems[] = [
-                'price_data' => [
-                    'currency' => 'eur',
-                    'unit_amount' => $donationAmountCents,
-                    'product' => $this->donationProductId,
-                ],
-                'quantity' => 1,
-            ];
+            $donProduct = $this->findProductByCategory('don');
+            if ($donProduct) {
+                $lineItems[] = [
+                    'price_data' => [
+                        'currency' => 'eur',
+                        'unit_amount' => $donationAmountCents,
+                        'product' => $donProduct->id,
+                    ],
+                    'quantity' => 1,
+                ];
+            }
         }
 
         $params = [
@@ -127,14 +192,13 @@ class StripeCheckoutService
             ],
         ];
 
-        if ($this->isRecurringPrice($priceLookupKey)) {
+        $installments = self::INSTALLMENTS[$rhythm] ?? null;
+
+        if ($installments !== null) {
             $params['mode'] = 'subscription';
-            $cancelAt = $this->computeCancelAt($priceLookupKey);
-            if ($cancelAt) {
-                $params['subscription_data'] = [
-                    'metadata' => ['cancel_at' => (string) $cancelAt],
-                ];
-            }
+            $params['subscription_data'] = [
+                'metadata' => ['opp_installments' => (string) $installments],
+            ];
         } else {
             $params['mode'] = 'payment';
         }
@@ -142,26 +206,20 @@ class StripeCheckoutService
         return $this->stripeClient->checkout->sessions->create($params);
     }
 
-    private function isRecurringPrice(string $lookupKey): bool
+    private function loadProducts(): void
     {
-        return (bool) preg_match('/-(\d+)x$/', $lookupKey);
-    }
-
-    private function computeCancelAt(string $lookupKey): ?int
-    {
-        if (!preg_match('/-(?:mensuel|trimestriel)-(\d+)x$/', $lookupKey, $matches)) {
-            return null;
+        if ($this->productsByCategory !== null) {
+            return;
         }
 
-        $installments = (int) $matches[1];
-        $now = new \DateTimeImmutable();
+        $this->productsByCategory = [];
+        $allProducts = $this->stripeClient->products->all(['active' => true, 'limit' => 100]);
 
-        if (str_contains($lookupKey, '-trimestriel-')) {
-            $interval = $installments * 3;
-        } else {
-            $interval = $installments;
+        foreach ($allProducts->data as $product) {
+            $category = $product->metadata['opp_category'] ?? null;
+            if ($category !== null) {
+                $this->productsByCategory[$category] = $product;
+            }
         }
-
-        return $now->modify("+{$interval} months")->getTimestamp();
     }
 }

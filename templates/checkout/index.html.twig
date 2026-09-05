@@ -539,7 +539,7 @@
             }
         }
 
-        document.querySelectorAll('input[name="price_ids[]"]').forEach(function(el) { el.remove(); });
+        document.getElementById('checkout-form').querySelectorAll('input[name="price_ids[]"]').forEach(function(el) { el.remove(); });
         items.forEach(function(item) {
             var input = document.createElement('input');
             input.type = 'hidden';

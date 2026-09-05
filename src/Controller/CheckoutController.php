@@ -75,6 +75,10 @@ class CheckoutController extends AbstractController
         $rhythm = $request->request->get('rhythm', '1x');
 
         $priceIds = $request->request->all('price_ids');
+        $singlePriceId = $request->request->get('price_id');
+        if (empty($priceIds) && $singlePriceId) {
+            $priceIds = [$singlePriceId];
+        }
         if (empty($priceIds) || !$email) {
             return $this->redirectToRoute('checkout_index');
         }

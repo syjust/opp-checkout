@@ -82,8 +82,8 @@ class WebhookController extends AbstractController
         $intervalMonths = $interval === 'month' ? $intervalCount : $intervalCount * 12;
         $totalMonths = $installments * $intervalMonths;
 
-        $startDate = $subscription->current_period_start;
-        $endDate = (new \DateTimeImmutable("@{$startDate}"))->modify("+{$totalMonths} months")->getTimestamp();
+        $startDate = (int) $subscription->current_period_start;
+        $endDate = (new \DateTimeImmutable("@$startDate"))->modify("+{$totalMonths} months")->getTimestamp();
 
         $schedule = $this->stripeClient->subscriptionSchedules->create([
             'from_subscription' => $subscriptionId,

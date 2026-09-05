@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Service\StripeCheckoutService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -11,12 +12,6 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class CheckoutController extends AbstractController
 {
-    private const CATEGORIES = [
-        'cours-annee' => 'Cours à l\'année',
-        'cours-unite' => 'Cours à l\'unité',
-        'stage' => 'Stages',
-    ];
-
     public function __construct(
         private readonly StripeCheckoutService $checkoutService,
     ) {
@@ -25,46 +20,32 @@ class CheckoutController extends AbstractController
     #[Route('/', name: 'checkout_index')]
     public function index(): Response
     {
-        $productsByCategory = [];
-        foreach (array_keys(self::CATEGORIES) as $category) {
-            $productsByCategory[$category] = $this->checkoutService->fetchProductsByCategory($category);
-        }
+        $season = $this->checkoutService->getCurrentSchoolYear();
+
+        $coursAnnee = $this->checkoutService->fetchProductsByCategory('cours-annee', $season);
+        $coursUnite = $this->checkoutService->fetchProductsByCategory('cours-unite', $season);
+
+        $productsAnnee = $this->structureProducts($coursAnnee);
+        $productsUnite = $this->structureProducts($coursUnite);
 
         return $this->render('checkout/index.html.twig', [
-            'categories' => self::CATEGORIES,
-            'products_by_category' => $productsByCategory,
-            'school_year' => $this->checkoutService->getCurrentSchoolYear(),
+            'school_year' => $season,
+            'products_annee' => $productsAnnee,
+            'products_unite' => $productsUnite,
+            'products_annee_json' => json_encode($productsAnnee, \JSON_THROW_ON_ERROR),
         ]);
     }
 
-    #[Route('/inscription', name: 'checkout_email')]
-    public function email(Request $request): Response
+    #[Route('/api/membership', name: 'api_membership', methods: ['GET'])]
+    public function checkMembership(Request $request): JsonResponse
     {
-        $priceId = $request->query->get('price_id');
-        $lookupKey = $request->query->get('lookup_key', '');
-
-        if (!$priceId) {
-            return $this->redirectToRoute('checkout_index');
-        }
-
-        $price = $this->checkoutService->getPrice($priceId);
-        if (!$price) {
-            return $this->redirectToRoute('checkout_index');
-        }
-
-        $product = $this->checkoutService->getProduct($price->product);
-
         $email = $request->query->get('email', '');
-        $hasMembership = $email ? $this->checkoutService->hasMembership($email) : false;
+        if (!$email) {
+            return new JsonResponse(['has_membership' => false]);
+        }
 
-        return $this->render('checkout/email.html.twig', [
-            'price_id' => $priceId,
-            'lookup_key' => $lookupKey,
-            'product_name' => $product->name,
-            'price_description' => $this->formatPriceDescription($price),
-            'email' => $email,
-            'has_membership' => $hasMembership,
-            'school_year' => $this->checkoutService->getCurrentSchoolYear(),
+        return new JsonResponse([
+            'has_membership' => $this->checkoutService->hasMembership(mb_strtolower($email)),
         ]);
     }
 
@@ -119,23 +100,69 @@ class CheckoutController extends AbstractController
         return $this->render('checkout/cancel.html.twig');
     }
 
-    private function formatPriceDescription(\Stripe\Price $price): string
+    private function structureProducts(array $rawProducts): array
     {
-        if (!$price->unit_amount) {
-            return 'Prix libre';
+        $result = [];
+
+        foreach ($rawProducts as $item) {
+            $product = $item['product'];
+            $prices = $item['prices'];
+
+            $slug = null;
+            $pricesByRhythm = [];
+            $sessionsCount = null;
+
+            foreach ($prices as $price) {
+                $lookupKey = $price->lookup_key ?? '';
+                $installments = $price->metadata['opp_installments'] ?? null;
+                $reduced = ($price->metadata['opp_reduced'] ?? null) === 'true';
+
+                if ($installments === null && !$price->recurring) {
+                    $rhythm = '1x';
+                } elseif ($installments === '3') {
+                    $rhythm = '3x';
+                } elseif ($installments === '10') {
+                    $rhythm = '10x';
+                } else {
+                    $rhythm = '1x';
+                }
+
+                if (!$slug && $lookupKey) {
+                    $slug = preg_replace('/-\d{4}-\d{4}-.+$/', '', $lookupKey);
+                }
+
+                $key = $reduced ? $rhythm . '_reduc' : $rhythm;
+                $pricesByRhythm[$key] = [
+                    'id' => $price->id,
+                    'amount' => $price->unit_amount,
+                    'lookup_key' => $lookupKey,
+                ];
+            }
+
+            $reducedBy = $product->metadata['opp_reduced_by'] ?? null;
+            $isGuinguette = $reducedBy !== null;
+
+            $grantsReduction = false;
+            foreach ($rawProducts as $other) {
+                $otherReducedBy = $other['product']->metadata['opp_reduced_by'] ?? '';
+                if ($otherReducedBy && $slug && str_contains($otherReducedBy, $slug)) {
+                    $grantsReduction = true;
+                    break;
+                }
+            }
+
+            $result[] = [
+                'slug' => $slug ?? $product->id,
+                'name' => $product->name,
+                'description' => $product->description ?? '',
+                'sessions_count' => null,
+                'is_guinguette' => $isGuinguette,
+                'grants_reduction' => $grantsReduction,
+                'reduced_by' => $reducedBy ? explode(';', $reducedBy) : [],
+                'prices' => $pricesByRhythm,
+            ];
         }
 
-        $amount = number_format($price->unit_amount / 100, 2, ',', ' ') . ' €';
-
-        if ($price->recurring) {
-            $interval = match ($price->recurring->interval) {
-                'month' => $price->recurring->interval_count === 1 ? '/mois' : "/ {$price->recurring->interval_count} mois",
-                'year' => '/an',
-                default => '',
-            };
-            return $amount . ' ' . $interval;
-        }
-
-        return $amount;
+        return $result;
     }
 }

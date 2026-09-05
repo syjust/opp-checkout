@@ -1,103 +1,588 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}Inscription aux cours — OPP{% endblock %}
+{% block season_label %}<span class="opp-season"> — Saison {{ school_year }}</span>{% endblock %}
+
+{% block stylesheets %}
+<style>
+    .course-card { transition: border-color 0.2s, background-color 0.2s; cursor: pointer; }
+    .course-card.in-cart { border-color: #0d6efd !important; background-color: #f0f6ff; }
+    .price-struck { text-decoration: line-through; color: #6c757d; font-size: 0.9em; }
+    .price-reduced { color: #198754; font-weight: bold; }
+    .reduction-badge { font-size: 0.75em; }
+    .cart-sidebar { position: sticky; top: 1rem; }
+    .cost-per-session { font-size: 0.8em; color: #6c757d; }
+    .course-card .price-col { white-space: nowrap; min-width: 90px; text-align: end; }
+    .don-options .btn-check:checked + .btn { background-color: #0d6efd; color: #fff; }
+    .opp-tabs-bar { background: #fff; border-bottom: 1px solid #dee2e6; }
+    .opp-tabs-bar .nav-tabs { border-bottom: none; }
+</style>
+{% endblock %}
+
+{% block tabs %}
+<div class="opp-tabs-bar">
+    <div class="container">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-annee" type="button">Cours à l'année</button>
+            </li>
+            {% if products_unite is not empty %}
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-unite" type="button">Cours à l'unité</button>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
 
 {% block body %}
-<h1 class="mb-4">Inscription aux cours et ateliers de musique</h1>
-<p class="text-muted mb-3">Tarifs {{ school_year }} — Choisissez votre cours puis votre rythme de paiement.</p>
-
-<div class="form-check mb-4">
-    <input class="form-check-input" type="checkbox" id="reduction-toggle">
-    <label class="form-check-label" for="reduction-toggle">
-        Je suis inscrit(e) à un cours d'instrument hebdomadaire ou un atelier mensuel <small class="text-muted">(tarif réduit)</small>
-    </label>
-</div>
-
-<ul class="nav nav-tabs mb-4" role="tablist">
-    {% for cat_key, cat_label in categories %}
-        <li class="nav-item" role="presentation">
-            <button class="nav-link{% if loop.first %} active{% endif %}"
-                    id="tab-{{ cat_key }}"
-                    data-bs-toggle="tab"
-                    data-bs-target="#pane-{{ cat_key }}"
-                    type="button"
-                    role="tab">
-                {{ cat_label }}
-            </button>
-        </li>
-    {% endfor %}
-</ul>
-
 <div class="tab-content">
-    {% for cat_key, cat_label in categories %}
-        <div class="tab-pane fade{% if loop.first %} show active{% endif %}"
-             id="pane-{{ cat_key }}"
-             role="tabpanel">
 
-            {% set cat_products = products_by_category[cat_key] | default([]) %}
+    {# ================================================================== #}
+    {# TAB 1: COURS À L'ANNÉE — multi-cart                                #}
+    {# ================================================================== #}
+    <div class="tab-pane fade show active" id="tab-annee">
+        <form method="post" action="{{ path('checkout_create_session') }}" id="checkout-form">
+        <div class="row">
+            <div class="col-lg-8">
+                <h4 class="mb-3">Choisissez vos cours</h4>
 
-            {% if cat_products is empty %}
-                <p class="text-muted">Aucun produit disponible dans cette catégorie pour le moment.</p>
-            {% else %}
-                <div class="row g-4">
-                    {% for item in cat_products %}
-                        {% set has_reduced = false %}
-                        {% for price in item.prices %}
-                            {% if is_reduced_price(price) %}
-                                {% set has_reduced = true %}
-                            {% endif %}
-                        {% endfor %}
+                {# Non-Guinguette courses: 2-column grid #}
+                <div class="row row-cols-1 row-cols-md-2 g-3 mb-4">
+                    {% for product in products_annee %}
+                    {% if not product.is_guinguette %}
+                    <div class="col">
+                        <div class="card h-100 course-card border" data-slug="{{ product.slug }}">
+                            <div class="card-body d-flex flex-column">
+                                <h6 class="card-title mb-1">{{ product.name }}</h6>
+                                {% if product.description %}
+                                    <p class="card-text text-muted small mb-1">{{ product.description }}</p>
+                                {% endif %}
+                                {% if product.grants_reduction %}
+                                    <span class="badge bg-info reduction-badge mb-2 align-self-start">Donne droit au tarif réduit Guinguette</span>
+                                {% endif %}
+                                <div class="mt-auto d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold fs-5 course-price"></div>
+                                        <span class="cost-per-session"></span>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary cart-toggle-btn">Ajouter</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
 
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ item.product.name }}</h5>
-                                    {% if item.product.description %}
-                                        <p class="card-text text-muted small">{{ item.product.description }}</p>
-                                    {% endif %}
+                {# Guinguette Orchestra section: full-width cards #}
+                {% set has_guinguette = false %}
+                {% for product in products_annee %}
+                    {% if product.is_guinguette %}
+                    {% if not has_guinguette %}
+                        {% set has_guinguette = true %}
+                        <h5 class="mb-3 text-muted">Guinguette Orchestra</h5>
+                    {% endif %}
+                    <div class="card mb-3 course-card border" data-slug="{{ product.slug }}">
+                        <div class="card-body d-flex justify-content-between align-items-start gap-2">
+                            <div class="flex-grow-1">
+                                <h6 class="card-title mb-1">{{ product.name }}</h6>
+                                <p class="card-text text-muted small mb-1">{{ product.description }}</p>
+                                <span class="badge reduction-badge reduction-status mb-1" style="display:none;"></span>
+                            </div>
+                            <div class="price-col">
+                                <span class="price-struck guinguette-price-normal" style="display:none;"></span>
+                                <div class="fw-bold fs-5 course-price"></div>
+                                <span class="cost-per-session"></span>
+                                <br>
+                                <button type="button" class="btn btn-sm btn-outline-primary cart-toggle-btn mt-1">Ajouter</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
 
-                                    <div class="d-grid gap-2 mt-3">
-                                        {% for price in item.prices %}
-                                            {% set reduced = is_reduced_price(price) %}
-                                            {% set annual = price_annual_total(price) %}
-                                            {% set label = price_label(price) %}
+            {# ===================== Cart sidebar ===================== #}
+            <div class="col-lg-4">
+                <div class="cart-sidebar">
+                    <div class="card border-primary">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Panier</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Rythme de paiement</label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="rhythm" id="rythme-1x" value="1x" autocomplete="off">
+                                    <label class="btn btn-outline-primary" for="rythme-1x">1×</label>
+                                    <input type="radio" class="btn-check" name="rhythm" id="rythme-3x" value="3x" autocomplete="off">
+                                    <label class="btn btn-outline-primary" for="rythme-3x">3×</label>
+                                    <input type="radio" class="btn-check" name="rhythm" id="rythme-10x" value="10x" autocomplete="off" checked>
+                                    <label class="btn btn-outline-primary" for="rythme-10x">10×</label>
+                                </div>
+                            </div>
 
-                                            <a href="{{ path('checkout_email', {
-                                                    price_id: price.id,
-                                                    lookup_key: price.lookup_key | default(''),
-                                                }) }}"
-                                               class="btn btn-outline-primary btn-sm price-btn{% if has_reduced %} {{ reduced ? 'price-reduced' : 'price-normal' }}{% endif %}"
-                                               {% if has_reduced and reduced %}style="display: none;"{% endif %}>
-                                                {% if annual %}
-                                                    <span class="fw-bold">{{ annual|format_euros }}/an</span>
-                                                    <br><small>{{ label }}</small>
-                                                {% else %}
-                                                    {{ label }}
-                                                {% endif %}
-                                            </a>
-                                        {% endfor %}
+                            <ul class="list-group list-group-flush mb-3" id="cart-items">
+                                <li class="list-group-item text-muted px-0" id="cart-empty">Aucun cours sélectionné</li>
+                            </ul>
+
+                            <div id="cart-totals" style="display:none;">
+                                <div class="border-top pt-2">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Total annuel</span>
+                                        <span class="text-nowrap"><strong id="cart-annual-total"></strong></span>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted mb-1" id="cart-savings-row" style="display:none;">
+                                        <small>Économie réduction</small>
+                                        <small class="price-reduced text-nowrap" id="cart-savings"></small>
+                                    </div>
+                                    <div class="border-top pt-2 mt-2">
+                                        <div class="d-flex justify-content-between fw-bold">
+                                            <span id="cart-payment-label">Total</span>
+                                            <span class="text-nowrap" id="cart-payment-amount"></span>
+                                        </div>
+                                        <div class="text-muted" id="cart-schedule" style="display:none;">
+                                            <small id="cart-schedule-text"></small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    {% endfor %}
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="email" class="form-label fw-bold">Adresse email</label>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="votre@email.com" required>
+                                <div class="form-text">Pour retrouver votre adhésion et vos inscriptions.</div>
+                            </div>
+
+                            <div id="checkout-fields" style="display:none;">
+                                <div id="adhesion-section"></div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Don à l'OPP <small class="text-muted fw-normal">(optionnel)</small></label>
+                                    <div class="don-options btn-group w-100 mb-2" role="group">
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-0" value="0" autocomplete="off" checked>
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-0">Aucun</label>
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-5" value="5" autocomplete="off">
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-5">5 €</label>
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-10" value="10" autocomplete="off">
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-10">10 €</label>
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-20" value="20" autocomplete="off">
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-20">20 €</label>
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-custom" value="custom" autocomplete="off">
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-custom">Autre</label>
+                                    </div>
+                                    <div class="input-group" style="max-width: 200px; display: none;" id="custom-donation-group">
+                                        <input type="number" class="form-control" name="donation_custom_amount" min="1" step="1" placeholder="Montant">
+                                        <span class="input-group-text">€</span>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 btn-lg" id="checkout-btn" disabled>Passer au paiement</button>
+                                <p class="text-muted text-center mt-2 mb-0"><small>Paiement sécurisé par Stripe</small></p>
+                            </div>
+
+                            <div id="checkout-disabled">
+                                <button type="button" class="btn btn-primary w-100 btn-lg" disabled>Passer au paiement</button>
+                                <p class="text-muted text-center mt-2 mb-0"><small>Saisissez votre email pour continuer</small></p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            {% endif %}
+            </div>
         </div>
-    {% endfor %}
+        </form>
+    </div>
+
+    {# ================================================================== #}
+    {# TAB 2: COURS À L'UNITÉ — simple standalone                         #}
+    {# ================================================================== #}
+    {% if products_unite is not empty %}
+    <div class="tab-pane fade" id="tab-unite">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h4 class="mb-3">Cours à l'unité</h4>
+
+                {% for product in products_unite %}
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ product.name }}</h5>
+                        {% if product.description %}
+                            <p class="card-text text-muted">{{ product.description }}</p>
+                        {% endif %}
+                        {% if product.prices['1x'] is defined %}
+                            <div class="fw-bold fs-4 mb-0">{{ product.prices['1x'].amount|format_euros }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <form method="post" action="{{ path('checkout_create_session') }}" id="form-unite">
+                    {% if product.prices['1x'] is defined %}
+                        <input type="hidden" name="price_ids[]" value="{{ product.prices['1x'].id }}">
+                        <input type="hidden" name="rhythm" value="1x">
+                    {% endif %}
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="email-unite" class="form-label fw-bold">Adresse email</label>
+                                <input type="email" class="form-control" id="email-unite" name="email" placeholder="votre@email.com" required>
+                                <div class="form-text">Pour retrouver votre adhésion et vos inscriptions.</div>
+                            </div>
+
+                            <div id="checkout-fields-unite" style="display:none;">
+                                <div id="adhesion-section-unite"></div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Don à l'OPP <small class="text-muted fw-normal">(optionnel)</small></label>
+                                    <div class="don-options btn-group w-100 mb-2" role="group">
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-unite-0" value="0" autocomplete="off" checked>
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-unite-0">Aucun</label>
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-unite-5" value="5" autocomplete="off">
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-unite-5">5 €</label>
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-unite-10" value="10" autocomplete="off">
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-unite-10">10 €</label>
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-unite-20" value="20" autocomplete="off">
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-unite-20">20 €</label>
+                                        <input type="radio" class="btn-check" name="donation_preset" id="don-unite-custom" value="custom" autocomplete="off">
+                                        <label class="btn btn-outline-secondary btn-sm" for="don-unite-custom">Autre</label>
+                                    </div>
+                                    <div class="input-group" style="max-width: 200px; display: none;" id="custom-donation-group-unite">
+                                        <input type="number" class="form-control" name="donation_custom_amount" min="1" step="1" placeholder="Montant">
+                                        <span class="input-group-text">€</span>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 btn-lg" id="checkout-btn-unite">Passer au paiement</button>
+                                <p class="text-muted text-center mt-2 mb-0"><small>Paiement sécurisé par Stripe</small></p>
+                            </div>
+
+                            <div id="checkout-disabled-unite">
+                                <button type="button" class="btn btn-primary w-100 btn-lg" disabled>Passer au paiement</button>
+                                <p class="text-muted text-center mt-2 mb-0"><small>Saisissez votre email pour continuer</small></p>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}
 
 {% block javascripts %}
 <script>
-document.getElementById('reduction-toggle').addEventListener('change', function() {
-    var reduced = this.checked;
-    document.querySelectorAll('.price-normal').forEach(function(el) {
-        el.style.display = reduced ? 'none' : '';
+(function() {
+    'use strict';
+
+    var PRODUCTS = {{ products_annee_json|raw }};
+    var MEMBERSHIP_URL = '{{ path("api_membership") }}';
+    var cart = {};
+    var currentRhythm = '10x';
+    var hasMembership = false;
+    var membershipChecked = false;
+
+    var INSTALLMENTS = { '1x': null, '3x': 3, '10x': 10 };
+
+    function formatEuros(cents) {
+        return Math.round(cents / 100).toLocaleString('fr-FR') + ' €';
+    }
+
+    function getProductBySlug(slug) {
+        for (var i = 0; i < PRODUCTS.length; i++) {
+            if (PRODUCTS[i].slug === slug) return PRODUCTS[i];
+        }
+        return null;
+    }
+
+    function cartHasReductionEligible() {
+        for (var slug in cart) {
+            var p = getProductBySlug(slug);
+            if (p && p.grants_reduction) return true;
+        }
+        return false;
+    }
+
+    function getEffectivePrice(product, rhythm) {
+        var eligible = product.is_guinguette && cartHasReductionEligible();
+        var reducedKey = rhythm + '_reduc';
+        if (eligible && product.prices[reducedKey]) {
+            return { price: product.prices[reducedKey], reduced: true, normalPrice: product.prices[rhythm] };
+        }
+        return { price: product.prices[rhythm], reduced: false, normalPrice: null };
+    }
+
+    function getAnnualAmount(priceInfo) {
+        if (!priceInfo || !priceInfo.price) return 0;
+        var inst = INSTALLMENTS[currentRhythm];
+        if (inst) return priceInfo.price.amount * inst;
+        return priceInfo.price.amount;
+    }
+
+    function updateCardDisplay(card, product) {
+        var rhythm = currentRhythm;
+        var eff = getEffectivePrice(product, rhythm);
+        var priceEl = card.querySelector('.course-price');
+        var sessionEl = card.querySelector('.cost-per-session');
+        var struckEl = card.querySelector('.guinguette-price-normal');
+        var statusEl = card.querySelector('.reduction-status');
+
+        if (eff.price) {
+            var annual = getAnnualAmount(eff);
+            priceEl.textContent = formatEuros(annual);
+        } else {
+            priceEl.textContent = '';
+        }
+
+        if (sessionEl) {
+            if (eff.price && product.sessions_count) {
+                var annual = getAnnualAmount(eff);
+                sessionEl.textContent = formatEuros(Math.round(annual / product.sessions_count)) + '/séance';
+            } else {
+                sessionEl.textContent = '';
+            }
+        }
+
+        if (product.is_guinguette) {
+            if (struckEl) {
+                if (eff.reduced && eff.normalPrice) {
+                    var normalAnnual = INSTALLMENTS[rhythm] ? eff.normalPrice.amount * INSTALLMENTS[rhythm] : eff.normalPrice.amount;
+                    struckEl.textContent = formatEuros(normalAnnual);
+                    struckEl.style.display = '';
+                } else {
+                    struckEl.style.display = 'none';
+                }
+            }
+            if (statusEl) {
+                var eligible = cartHasReductionEligible();
+                if (eff.reduced) {
+                    statusEl.className = 'badge bg-success reduction-badge reduction-status mb-1';
+                    statusEl.textContent = 'Tarif réduit appliqué';
+                    statusEl.style.display = '';
+                } else if (eligible) {
+                    statusEl.style.display = 'none';
+                } else if (product.reduced_by.length > 0) {
+                    statusEl.className = 'badge bg-warning text-dark reduction-badge reduction-status mb-1';
+                    statusEl.textContent = 'Tarif réduit si cours d\'instruments ou accordéon au panier';
+                    statusEl.style.display = '';
+                } else {
+                    statusEl.style.display = 'none';
+                }
+            }
+        }
+
+        var inCart = cart[product.slug] === true;
+        var btn = card.querySelector('.cart-toggle-btn');
+        card.classList.toggle('in-cart', inCart);
+        card.classList.toggle('border-2', inCart);
+        if (btn) {
+            if (inCart) {
+                btn.textContent = 'Retirer';
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-outline-danger');
+            } else {
+                btn.textContent = 'Ajouter';
+                btn.classList.remove('btn-outline-danger');
+                btn.classList.add('btn-outline-primary');
+            }
+        }
+    }
+
+    function updateCart() {
+        var cartItemsEl = document.getElementById('cart-items');
+        var cartEmptyEl = document.getElementById('cart-empty');
+        var cartTotals = document.getElementById('cart-totals');
+        var items = [];
+
+        cartItemsEl.querySelectorAll('.cart-line').forEach(function(el) { el.remove(); });
+
+        var totalAnnual = 0;
+        var totalSavings = 0;
+
+        for (var slug in cart) {
+            var product = getProductBySlug(slug);
+            if (!product) continue;
+
+            var eff = getEffectivePrice(product, currentRhythm);
+            if (!eff.price) continue;
+
+            var annual = getAnnualAmount(eff);
+            totalAnnual += annual;
+
+            if (eff.reduced && eff.normalPrice) {
+                var normalAnnual = INSTALLMENTS[currentRhythm] ? eff.normalPrice.amount * INSTALLMENTS[currentRhythm] : eff.normalPrice.amount;
+                totalSavings += normalAnnual - annual;
+            }
+
+            var li = document.createElement('li');
+            li.className = 'list-group-item d-flex justify-content-between px-0 cart-line';
+
+            var inst = INSTALLMENTS[currentRhythm];
+            var periodLabel = inst ? formatEuros(eff.price.amount) + '/mois' : '';
+
+            if (eff.reduced && eff.normalPrice) {
+                var normalPeriod = inst ? formatEuros(eff.normalPrice.amount) + '/mois' : formatEuros(INSTALLMENTS[currentRhythm] ? eff.normalPrice.amount * INSTALLMENTS[currentRhythm] : eff.normalPrice.amount);
+                li.innerHTML = '<div><span>' + product.name + '</span>' +
+                    (inst ? '<br><small class="price-struck">' + normalPeriod + '</small>' : '') +
+                    '</div><span class="price-reduced text-nowrap">' + (inst ? formatEuros(eff.price.amount) + '/mois' : formatEuros(annual)) + '</span>';
+            } else {
+                li.innerHTML = '<span>' + product.name + '</span><span class="text-nowrap">' + (inst ? periodLabel : formatEuros(annual)) + '</span>';
+            }
+
+            cartItemsEl.appendChild(li);
+            items.push({ slug: slug, priceId: eff.price.id });
+        }
+
+        var hasItems = items.length > 0;
+        cartEmptyEl.style.display = hasItems ? 'none' : '';
+        cartTotals.style.display = hasItems ? '' : 'none';
+
+        if (hasItems) {
+            document.getElementById('cart-annual-total').textContent = formatEuros(totalAnnual);
+
+            var savingsRow = document.getElementById('cart-savings-row');
+            if (totalSavings > 0) {
+                document.getElementById('cart-savings').textContent = '-' + formatEuros(totalSavings);
+                savingsRow.style.display = '';
+            } else {
+                savingsRow.style.display = 'none';
+            }
+
+            var inst = INSTALLMENTS[currentRhythm];
+            var paymentLabel = document.getElementById('cart-payment-label');
+            var paymentAmount = document.getElementById('cart-payment-amount');
+            var scheduleEl = document.getElementById('cart-schedule');
+            var scheduleText = document.getElementById('cart-schedule-text');
+
+            if (inst) {
+                var perPayment = 0;
+                for (var slug in cart) {
+                    var p = getProductBySlug(slug);
+                    if (!p) continue;
+                    var e = getEffectivePrice(p, currentRhythm);
+                    if (e.price) perPayment += e.price.amount;
+                }
+                paymentLabel.innerHTML = '1<sup>er</sup> paiement aujourd\'hui';
+                paymentAmount.textContent = formatEuros(perPayment);
+                scheduleText.textContent = 'puis ' + (inst - 1) + ' paiements de ' + formatEuros(perPayment) + (currentRhythm === '3x' ? '/trimestre' : '/mois');
+                scheduleEl.style.display = '';
+            } else {
+                paymentLabel.textContent = 'Total';
+                paymentAmount.textContent = formatEuros(totalAnnual);
+                scheduleEl.style.display = 'none';
+            }
+        }
+
+        document.querySelectorAll('input[name="price_ids[]"]').forEach(function(el) { el.remove(); });
+        items.forEach(function(item) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'price_ids[]';
+            input.value = item.priceId;
+            document.getElementById('checkout-form').appendChild(input);
+        });
+
+        var btn = document.getElementById('checkout-btn');
+        btn.disabled = !hasItems || !membershipChecked;
+    }
+
+    function updateAllCards() {
+        document.querySelectorAll('.course-card[data-slug]').forEach(function(card) {
+            var slug = card.dataset.slug;
+            var product = getProductBySlug(slug);
+            if (product) updateCardDisplay(card, product);
+        });
+        updateCart();
+    }
+
+    document.querySelectorAll('.course-card[data-slug]').forEach(function(card) {
+        var btn = card.querySelector('.cart-toggle-btn');
+        if (btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var slug = card.dataset.slug;
+                if (cart[slug]) {
+                    delete cart[slug];
+                } else {
+                    cart[slug] = true;
+                }
+                updateAllCards();
+            });
+        }
     });
-    document.querySelectorAll('.price-reduced').forEach(function(el) {
-        el.style.display = reduced ? '' : 'none';
+
+    document.querySelectorAll('input[name="rhythm"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            currentRhythm = this.value;
+            updateAllCards();
+        });
     });
-});
+
+    var emailDebounce = null;
+    function checkMembership(email, suffix) {
+        var fieldsEl = document.getElementById('checkout-fields' + suffix);
+        var disabledEl = document.getElementById('checkout-disabled' + suffix);
+        var adhesionEl = document.getElementById('adhesion-section' + suffix);
+
+        if (!email || !email.includes('@')) {
+            fieldsEl.style.display = 'none';
+            disabledEl.style.display = '';
+            membershipChecked = false;
+            if (suffix === '') updateCart();
+            return;
+        }
+
+        fetch(MEMBERSHIP_URL + '?email=' + encodeURIComponent(email))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                hasMembership = data.has_membership;
+                membershipChecked = true;
+
+                if (hasMembership) {
+                    adhesionEl.innerHTML = '<div class="alert alert-success py-2 mb-3"><small>✓ Adhésion {{ school_year }} déjà validée</small></div><input type="hidden" name="adhesion_amount" value="0">';
+                } else {
+                    adhesionEl.innerHTML = '<div class="mb-3"><label class="form-label fw-bold">Adhésion {{ school_year }} <span class="text-danger">*</span></label><div class="input-group" style="max-width:200px;"><input type="number" class="form-control" name="adhesion_amount" min="1" step="1" value="10" required><span class="input-group-text">€</span></div><div class="form-text">Prix libre, minimum 1 €. Obligatoire pour s\'inscrire.</div></div>';
+                }
+
+                fieldsEl.style.display = '';
+                disabledEl.style.display = 'none';
+                if (suffix === '') updateCart();
+            });
+    }
+
+    document.getElementById('email').addEventListener('input', function() {
+        var email = this.value;
+        clearTimeout(emailDebounce);
+        emailDebounce = setTimeout(function() { checkMembership(email, ''); }, 500);
+    });
+
+    var emailUnite = document.getElementById('email-unite');
+    if (emailUnite) {
+        var debounceUnite = null;
+        emailUnite.addEventListener('input', function() {
+            var email = this.value;
+            clearTimeout(debounceUnite);
+            debounceUnite = setTimeout(function() { checkMembership(email, '-unite'); }, 500);
+        });
+    }
+
+    document.querySelectorAll('input[name="donation_preset"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            var form = this.closest('form') || this.closest('.card');
+            var group = form.querySelector('[id^="custom-donation-group"]');
+            if (group) group.style.display = this.value === 'custom' ? '' : 'none';
+        });
+    });
+
+    updateAllCards();
+})();
 </script>
 {% endblock %}

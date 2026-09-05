@@ -110,19 +110,50 @@ Afficher le numéro de version (tag git) dans le footer via le fichier `VERSION`
 
 ---
 
-## v1.1 — Gestion des saisons
+## v1.1.0 — Refonte produits, panier et saisons
 
-### Standardisation des tarifs
+> v1.1 et v1.2 fusionnées — rien n'est en prod, on repart sur une base propre.
 
-Supprimer le rythme x9 mensuel. Tous les cours passent en **x10 mensuel** ou **x3 trimestriel** uniquement. Simplification pour les adhérents et pour le code (plus besoin de gérer la divisibilité par 9).
+### Restructuration des produits Stripe
 
-### Saison dans les métadonnées Stripe
+**Produits cibles (7 produits cours + adhésion + don) :**
 
-Ajouter un metadata `opp_season` (ex: `2026-2027`) sur chaque Price Stripe. L'app n'affiche que les prix correspondant à la saison en cours.
+| Produit Stripe | Catégorie | Réduction possible |
+|---|---|---|
+| Cours d'instruments hebdomadaire | `cours-annee` | Non (éligibilisant) |
+| Atelier Café Belsunce | `cours-annee` | Non (éligibilisant) |
+| Guinguette Orchestra Marseille (2 ateliers / mois) | `cours-annee` | Oui |
+| Guinguette Orchestra Marseille (1 atelier / mois) | `cours-annee` | Oui |
+| Guinguette Orchestra Aix-en-Provence (9 ateliers / an) | `cours-annee` | Oui |
+| Atelier d'accordéon diatonique Aix-en-Provence | `cours-annee` | Non |
+| Atelier d'accordéon diatonique Aubagne | `cours-annee` | Non |
+| Cours particulier 1h (instrument) | `cours-unite` | Non |
+| Adhésion | `adhesion` | — |
+| Don à l'OPP | `don` | — |
 
-### Adhésion sans notion de saison
+Les noms de produits ne contiennent plus « / année ». Le lieu et la fréquence sont dans le nom du Product, pas dans les Prices.
 
-Renommer le produit Stripe en **« Adhésion »** (tout court, sans l'année). Le produit reste unique et permanent — c'est la table `membership` en SQLite qui déduplique par email + année scolaire, pas Stripe. Les Prices de l'adhésion ne portent pas de metadata `opp_season`.
+**Description enrichie :** pour chaque cours où le nombre d'ateliers/an est connu, afficher le coût par atelier dans la description (ex: « 20 séances — 25 €/séance »).
+
+### Rythmes de paiement (Prices par Product)
+
+Chaque cours à l'année a **3 Prices** par saison :
+
+| Rythme | Stripe mode | Installments |
+|---|---|---|
+| **1x** (paiement unique) | `payment` (one_time) | — |
+| **3x** (trimestriel) | `subscription` (recurring, interval: month, interval_count: 3) | 3 |
+| **10x** (mensuel) | `subscription` (recurring, interval: month, interval_count: 1) | 10 |
+
+**Arrondis pour le 3x :** pour les montants annuels non divisibles par 3, on arrondit l'échéance au centime inférieur à 0,50 € près en dessous. Ex : 500 € annuel → 3 × 166,50 € = 499,50 €.
+
+Les produits éligibles à la réduction ont **6 Prices** (3 normaux + 3 réduits).
+
+Le sélecteur de rythme dans l'UI propose 1x / 3x / 10x pour chaque produit.
+
+### DEVX — Suppression des env vars Product ID
+
+Remplacer `ADHESION_PRODUCT_ID` et `DONATION_PRODUCT_ID` (env vars) par une résolution via metadata `opp_category` (déjà existante sur chaque Product). L'app cherche le produit avec `opp_category=adhesion` et `opp_category=don` au lieu de stocker des IDs.
 
 ### Métadonnées Stripe : inventaire cible
 
@@ -130,94 +161,87 @@ Renommer le produit Stripe en **« Adhésion »** (tout court, sans l'année). L
 
 | Clé | Exemple | Usage |
 |---|---|---|
-| `opp_category` | `cours-annee` | Filtrage des produits par catégorie dans l'UI |
+| `opp_category` | `cours-annee` | Filtrage par catégorie dans l'UI |
+| `opp_grants_reduction` | `true` | Ce produit donne droit à la réduction (cours instruments, Café Belsunce) |
+| `opp_reducible` | `true` | Ce produit peut recevoir une réduction (Guinguette) |
 
 **Price metadata :**
 
 | Clé | Exemple | Usage |
 |---|---|---|
-| `opp_season` | `2026-2027` | Filtrage par saison — absent sur adhésion et don (produits permanents) |
-| `opp_installments` | `10` | Nombre d'échéances — remplace le parsing du suffix `-Nx$` du lookup_key |
-| `opp_interval` | `month` | `month` ou `quarter` — redondant avec `recurring.interval` mais explicite pour le calcul de cancel_at |
-| `opp_reduced` | `true` | Tarif réduit — remplace la détection de `-reduc-` dans le lookup_key |
+| `opp_season` | `2026-2027` | Filtrage par saison — absent sur adhésion et don |
+| `opp_installments` | `10` | Nombre d'échéances (absent pour paiement unique) |
+| `opp_reduced` | `true` | Tarif réduit |
 
-**Price `nickname` (champ Stripe natif, visible dans le Dashboard) :**
+**Price `nickname` (visible dans le Stripe Dashboard) :**
 
-Format : `{nom cours} — {saison} [{réduit}]`
-Exemples : `Guinguette Marseille 2x — 2026-2027`, `Guinguette Marseille 2x — 2026-2027 [réduit]`
+Format : `{nom cours} — {saison} {rythme} [{réduit}]`
+Exemples : `Guinguette Marseille 2x — 2026-2027 10x`, `Guinguette Marseille 2x — 2026-2027 3x [réduit]`
 
-**Checkout Session metadata** (inchangé) :
+**Checkout Session metadata :**
 
 | Clé | Valeur |
 |---|---|
 | `school_year` | `2026-2027` |
 | `adhesion_amount_cents` | `1000` |
 
-**Subscription metadata** (inchangé) :
+### Gestion des abonnements — `subscription_schedule` au lieu de `cancel_at`
 
-| Clé | Valeur |
-|---|---|
-| `cancel_at` | `1751328000` (timestamp Unix) |
+Remplacer le mécanisme `cancel_at` (date calculée, fragile si le premier paiement est décalé) par l'API `Subscription Schedules` de Stripe :
+- Créer un schedule avec une phase de N `iterations` (10 pour mensuel, 3 pour trimestriel)
+- Stripe arrête automatiquement après le dernier paiement
+- Plus besoin de stocker `cancel_at` en metadata ni de l'appliquer via webhook
+- Le schedule est visible et modifiable dans le Dashboard
 
-### Suppression des `lookup_key`
+### Vérification des achats existants — modèle hybride
 
-Aujourd'hui, les `lookup_key` encodent 4 informations dans une convention de nommage (`{slug}-{reduc?}-{interval}-{installments}x`). Elles sont parsées par regex à 6 endroits du code :
+**Table locale SQLite (déjà existante : `membership`)** pour :
+- Adhésion déjà payée pour la saison en cours → ne pas reproposer
 
-| Fichier | Usage du lookup_key |
-|---|---|
-| `StripeCheckoutService::isRecurringPrice()` | Détecter si récurrent (regex `-(\d+)x$`) |
-| `StripeCheckoutService::computeCancelAt()` | Extraire installments + interval (regex + `str_contains`) |
-| `AppExtension::priceLabel()` | Afficher "x9" / "x10" (regex) |
-| `AppExtension::priceAnnualTotal()` | Calculer le total annuel (regex) |
-| `AppExtension::isReducedPrice()` | Détecter tarif réduit (`str_contains('-reduc-')`) |
-| `CheckoutController` / templates | Passé en hidden field jusqu'au `createCheckoutSession()` |
+**Nouvelle table `purchase`** pour :
+- Enregistrer les achats de cours par email + saison + product_id
+- Permet de savoir si un produit éligibilisant (cours instruments, Café Belsunce) a déjà été souscrit
+- → applique automatiquement la réduction sur Guinguette même si le cours n'est pas dans le panier actuel
 
-**Migration :** remplacer chaque regex par une lecture de `price.metadata['opp_installments']`, `opp_interval`, `opp_reduced`. Les `lookup_key` Stripe peuvent être conservées pour la rétrocompatibilité API mais ne sont plus lues par le code.
+Remplie par le webhook `checkout.session.completed`, comme pour `membership`.
+
+### UI / UX — Panier et checkout
+
+**Séparation des types de produits :**
+- Les `cours-unite` (cours particulier) et les futurs `stage` sont vendus **seuls** (pas combinables avec les cours à l'année)
+- Les `cours-annee` sont combinables entre eux dans un panier
+
+**Page de sélection (one-page) :**
+- Tous les cours à l'année de la saison en cours affichés
+- Bouton « Ajouter au panier » par produit
+- Sélecteur de rythme (1x / 3x / 10x) par produit dans le panier
+- Affichage en temps réel du **prix total annuel** et de la **première échéance**
+- Pour chaque cours avec un nombre d'ateliers connu : afficher le coût par atelier
+
+**Réductions :**
+- Indicateur visuel sur les produits Guinguette : « tarif réduit disponible si cours d'instrument ou Café Belsunce au panier »
+- Lorsqu'un produit éligibilisant est dans le panier OU a déjà été acheté pour la saison (table `purchase`) :
+  - Swap automatique vers le Price réduit
+  - Affichage du prix normal **barré** à côté du prix réduit
+
+**Checkout (après sélection) :**
+- Récapitulatif du panier (cours + rythmes + prix + réductions)
+- Saisie email → check adhésion + achats existants
+- Adhésion conditionnelle (prix libre, min 1 €)
+- Don optionnel
+- Bouton unique → redirection vers Stripe Checkout Session
+
+**Contrainte Stripe à résoudre :** en mode `subscription`, toutes les line items récurrentes doivent partager le même `interval` et `interval_count`. Solution retenue : **forcer le même rythme pour tout le panier** (le sélecteur 1x/3x/10x est global, pas par produit). Cf. [ADR-001](doc/adr-001-architecture-checkout.md).
 
 ### Commande `opp:products:create` — argument saison
 
 ```bash
-bin/console opp:products:create 2027-2028
+bin/console opp:products:create 2026-2027
 ```
 
-- Argument obligatoire : la saison (ex: `2027-2028`)
-- Crée de nouveaux Prices pour la saison demandée sur les Products existants
-- Écrit les metadata `opp_season`, `opp_installments`, `opp_interval`, `opp_reduced` sur chaque Price
-- Met le `nickname` du Price au format `{nom} — {saison} [{réduit}]`
-- Produits permanents (adhésion, don) : pas de `opp_season`, pas de nouveau Price si déjà existant
-- Idempotent : détection par `nickname` ou par combinaison metadata pour éviter les doublons
-
----
-
-## v1.2.0 — Panier multi-cours
-
-Évolution de l'UX : passer d'une sélection mono-produit à un **panier avec checkout en une page**.
-
-### Sélection des cours
-
-- Page unique avec tous les cours disponibles pour la saison en cours
-- Bouton « Ajouter » sur chaque cours
-- Choix du rythme de paiement (mensuel / trimestriel) par produit
-- Affichage en temps réel du **prix total annuel** et de la **première mensualité** directement dans la page de sélection
-
-### Réduction automatique par le panier
-
-Remplace la checkbox déclarative actuelle. Si le panier contient un cours d'instrument hebdomadaire ou un atelier mensuel, le tarif réduit Guinguette s'applique automatiquement.
-
-**Logique :** la présence d'un produit éligible (cours hebdo, atelier Café Belsunce) dans le panier déclenche le swap vers le Price `opp_reduced=true` pour les produits Guinguette Orchestra.
-
-### One-page checkout
-
-Après sélection des cours :
-- Récapitulatif du panier (cours + rythmes + prix)
-- Saisie email
-- Adhésion conditionnelle (si pas encore payée pour la saison)
-- Don optionnel
-- Bouton unique → redirection vers Stripe Checkout Session
-
-### Contrainte Stripe à résoudre
-
-En mode `subscription`, toutes les line items récurrentes doivent partager le même `interval` et `interval_count`. Solutions possibles :
-- Forcer le même rythme pour tout le panier
-- Créer plusieurs subscriptions (plusieurs Checkout Sessions ou API directe)
-- Voir [ADR-001](doc/adr-001-architecture-checkout.md) pour le détail de la contrainte
+- Argument obligatoire : la saison
+- Crée les Products (idempotent, détection par nom)
+- Crée les Prices pour la saison avec toutes les metadata + nickname
+- Génère les 3 rythmes (1x, 3x, 10x) × normal/réduit selon le produit
+- Produits permanents (adhésion, don) : pas de `opp_season`
+- Archivage des anciens prix (flag `--archive-old`)

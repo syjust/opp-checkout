@@ -85,9 +85,22 @@ class WebhookController extends AbstractController
         $startDate = (int) $subscription->current_period_start;
         $endDate = (new \DateTimeImmutable("@$startDate"))->modify("+{$totalMonths} months")->getTimestamp();
 
-        $schedule = $this->stripeClient->subscriptionSchedules->create([
-            'from_subscription' => $subscriptionId,
-        ]);
+        $existingScheduleId = $subscription->schedule ?? null;
+
+        if ($existingScheduleId) {
+            $schedule = $this->stripeClient->subscriptionSchedules->retrieve($existingScheduleId);
+            if ($schedule->end_behavior === 'cancel') {
+                $this->logger->info('Subscription schedule already configured', [
+                    'subscription' => $subscriptionId,
+                    'schedule' => $existingScheduleId,
+                ]);
+                return;
+            }
+        } else {
+            $schedule = $this->stripeClient->subscriptionSchedules->create([
+                'from_subscription' => $subscriptionId,
+            ]);
+        }
 
         $currentPhase = $schedule->phases[0] ?? null;
         $phaseItems = [];
@@ -111,7 +124,7 @@ class WebhookController extends AbstractController
             ],
         ]);
 
-        $this->logger->info('Subscription schedule created', [
+        $this->logger->info('Subscription schedule configured', [
             'subscription' => $subscriptionId,
             'schedule' => $schedule->id,
             'installments' => $installments,

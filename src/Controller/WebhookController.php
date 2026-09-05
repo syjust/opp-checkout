@@ -82,7 +82,7 @@ class WebhookController extends AbstractController
         $intervalMonths = $interval === 'month' ? $intervalCount : $intervalCount * 12;
         $totalMonths = $installments * $intervalMonths;
 
-        $startDate = (int) $subscription->current_period_start;
+        $startDate = (int) $subscription->start_date;
         $endDate = (new \DateTimeImmutable("@$startDate"))->modify("+{$totalMonths} months")->getTimestamp();
 
         $existingScheduleId = $subscription->schedule ?? null;

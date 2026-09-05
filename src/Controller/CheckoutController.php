@@ -71,11 +71,11 @@ class CheckoutController extends AbstractController
     #[Route('/create-session', name: 'checkout_create_session', methods: ['POST'])]
     public function createSession(Request $request): Response
     {
-        $priceId = $request->request->get('price_id');
-        $lookupKey = $request->request->get('lookup_key', '');
         $email = $request->request->get('email');
+        $rhythm = $request->request->get('rhythm', '1x');
 
-        if (!$priceId || !$email) {
+        $priceIds = $request->request->all('price_ids');
+        if (empty($priceIds) || !$email) {
             return $this->redirectToRoute('checkout_index');
         }
 
@@ -92,8 +92,8 @@ class CheckoutController extends AbstractController
 
         $session = $this->checkoutService->createCheckoutSession(
             email: mb_strtolower($email),
-            priceId: $priceId,
-            priceLookupKey: $lookupKey,
+            priceIds: $priceIds,
+            rhythm: $rhythm,
             adhesionAmountCents: $adhesionAmountCents,
             donationAmountCents: $donationAmountCents,
             successUrl: $this->generateUrl('checkout_success', [], UrlGeneratorInterface::ABSOLUTE_URL),

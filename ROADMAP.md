@@ -162,8 +162,7 @@ Remplacer `ADHESION_PRODUCT_ID` et `DONATION_PRODUCT_ID` (env vars) par une rés
 | Clé | Exemple | Usage |
 |---|---|---|
 | `opp_category` | `cours-annee` | Filtrage par catégorie dans l'UI |
-| `opp_grants_reduction` | `true` | Ce produit donne droit à la réduction (cours instruments, Café Belsunce) |
-| `opp_reducible` | `true` | Ce produit peut recevoir une réduction (Guinguette) |
+| `opp_reduced_by` | `cours-instruments,cafe-belsunce` | Préfixes lookup_key des produits qui donnent droit à la réduction sur ce produit. Absent = pas de réduction possible. |
 
 **Price metadata :**
 
@@ -184,6 +183,22 @@ Exemples : `Guinguette Marseille 2x — 2026-2027 10x`, `Guinguette Marseille 2x
 |---|---|
 | `school_year` | `2026-2027` |
 | `adhesion_amount_cents` | `1000` |
+
+### Conservation des lookup_key
+
+Les `lookup_key` sont conservées sur les Prices comme identifiant lisible et requêtable.
+
+**Convention :** `{slug}-{season}-{rythme}[-reduc]`
+
+| Exemple | Produit | Saison | Rythme | Réduit |
+|---|---|---|---|---|
+| `guinguette-marseille-2x-2026-2027-10x` | Guinguette Marseille 2x/mois | 2026-2027 | 10x | Non |
+| `guinguette-marseille-2x-2026-2027-3x-reduc` | Guinguette Marseille 2x/mois | 2026-2027 | 3x | Oui |
+| `cours-instruments-2026-2027-1x` | Cours d'instruments hebdo | 2026-2027 | 1x | Non |
+
+- Stockées dans la table `purchase` pour lisibilité directe en SQL
+- Les metadata Price (`opp_installments`, `opp_season`, `opp_reduced`) restent pour un accès structuré côté code
+- La relation de réduction est définie au niveau Product via `opp_reduced_by` (pas dans les lookup_key)
 
 ### Gestion des abonnements — `subscription_schedule` au lieu de `cancel_at`
 
@@ -219,8 +234,8 @@ Remplie par le webhook `checkout.session.completed`, comme pour `membership`.
 - Pour chaque cours avec un nombre d'ateliers connu : afficher le coût par atelier
 
 **Réductions :**
-- Indicateur visuel sur les produits Guinguette : « tarif réduit disponible si cours d'instrument ou Café Belsunce au panier »
-- Lorsqu'un produit éligibilisant est dans le panier OU a déjà été acheté pour la saison (table `purchase`) :
+- Indicateur visuel sur les produits dont `opp_reduced_by` est défini : « tarif réduit disponible si cours d'instrument ou Café Belsunce au panier »
+- Lorsqu'un produit listé dans `opp_reduced_by` est dans le panier OU a déjà été acheté pour la saison (table `purchase`) :
   - Swap automatique vers le Price réduit
   - Affichage du prix normal **barré** à côté du prix réduit
 

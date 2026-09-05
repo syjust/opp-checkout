@@ -113,12 +113,14 @@ class WebhookController extends AbstractController
             }
         }
 
+        $phaseStart = $currentPhase ? (int) $currentPhase->start_date : time();
+
         $this->stripeClient->subscriptionSchedules->update($schedule->id, [
             'end_behavior' => 'cancel',
             'phases' => [
                 [
                     'items' => $phaseItems,
-                    'start_date' => 'now',
+                    'start_date' => $phaseStart,
                     'end_date' => $endDate,
                 ],
             ],

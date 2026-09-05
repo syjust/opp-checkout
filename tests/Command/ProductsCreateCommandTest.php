@@ -54,7 +54,12 @@ class ProductsCreateCommandTest extends TestCase
 
     public function testSkipsExistingProducts(): void
     {
-        $existingProduct = Product::constructFrom(['id' => 'prod_123', 'name' => "Cours d'instruments hebdomadaire"]);
+        $existingProduct = Product::constructFrom([
+            'id' => 'prod_123',
+            'name' => "Cours d'instruments hebdomadaire",
+            'description' => "Cours individuel (40 min) ou collectif (1h) — accordéon diatonique, mandole, mandoline, guitare, banjo, luth, derbouka, bendir, nay",
+            'metadata' => ['opp_category' => 'cours-annee'],
+        ]);
 
         $this->productService->method('all')->willReturn($this->collectionOf([$existingProduct]));
         $this->priceService->method('all')->willReturn($this->emptyCollection());
@@ -63,7 +68,7 @@ class ProductsCreateCommandTest extends TestCase
         $tester = new CommandTester($command);
         $tester->execute(['season' => '2026-2027', '--dry-run' => true]);
 
-        $this->assertStringContainsString('Product exists', $tester->getDisplay());
+        $this->assertStringContainsString('Product up to date', $tester->getDisplay());
     }
 
     public function testCreatesThreeRhythmsForStandardProduct(): void

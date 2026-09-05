@@ -82,7 +82,26 @@ class ProductsCreateCommand extends Command
             $existingProduct = $existingProducts[$productName] ?? null;
 
             if ($existingProduct) {
-                $io->text("  ⏭ Product exists: <info>$productName</info> ({$existingProduct->id})");
+                $metadata = ['opp_category' => $row['opp_category']];
+                if (!empty($row['opp_reduced_by'])) {
+                    $metadata['opp_reduced_by'] = $row['opp_reduced_by'];
+                }
+
+                $needsUpdate = $existingProduct->description !== ($row['description'] ?: null)
+                    || ($existingProduct->metadata['opp_category'] ?? '') !== $row['opp_category']
+                    || ($existingProduct->metadata['opp_reduced_by'] ?? '') !== ($row['opp_reduced_by'] ?? '');
+
+                if ($needsUpdate) {
+                    $io->text("  ✏ Updating product: <info>$productName</info> ({$existingProduct->id})");
+                    if (!$dryRun) {
+                        $this->stripeClient->products->update($existingProduct->id, [
+                            'description' => $row['description'],
+                            'metadata' => $metadata,
+                        ]);
+                    }
+                } else {
+                    $io->text("  ⏭ Product up to date: <info>$productName</info> ({$existingProduct->id})");
+                }
                 $skippedProducts++;
                 $stripeProduct = $existingProduct;
             } else {

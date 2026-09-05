@@ -41,11 +41,15 @@ class CheckoutController extends AbstractController
     {
         $email = $request->query->get('email', '');
         if (!$email) {
-            return new JsonResponse(['has_membership' => false]);
+            return new JsonResponse(['has_membership' => false, 'has_reduction' => false]);
         }
 
+        $normalizedEmail = mb_strtolower($email);
+        $season = $this->checkoutService->getCurrentSchoolYear();
+
         return new JsonResponse([
-            'has_membership' => $this->checkoutService->hasMembership(mb_strtolower($email)),
+            'has_membership' => $this->checkoutService->hasMembership($normalizedEmail),
+            'has_reduction' => $this->checkoutService->hasReductionEligiblePurchase($normalizedEmail, $season),
         ]);
     }
 

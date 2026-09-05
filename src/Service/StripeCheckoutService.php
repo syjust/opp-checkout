@@ -76,6 +76,27 @@ class StripeCheckoutService
         return $this->purchaseRepository->hasAnyMatchingLookupKeyPrefix($email, $schoolYear, $prefixes);
     }
 
+    public function hasReductionEligiblePurchase(string $email, string $schoolYear): bool
+    {
+        $allProducts = $this->stripeClient->products->all(['active' => true, 'limit' => 100]);
+        $allPrefixes = [];
+
+        foreach ($allProducts->data as $product) {
+            $reducedBy = $product->metadata['opp_reduced_by'] ?? null;
+            if ($reducedBy) {
+                foreach (explode(';', $reducedBy) as $prefix) {
+                    $allPrefixes[$prefix] = true;
+                }
+            }
+        }
+
+        if (empty($allPrefixes)) {
+            return false;
+        }
+
+        return $this->purchaseRepository->hasAnyMatchingLookupKeyPrefix($email, $schoolYear, array_keys($allPrefixes));
+    }
+
     public function fetchProductsByCategory(string $category, ?string $season = null): array
     {
         $products = [];

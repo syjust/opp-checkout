@@ -301,6 +301,7 @@
     var currentRhythm = '10x';
     var hasMembership = false;
     var membershipChecked = false;
+    var hasReductionFromPurchase = false;
 
     var INSTALLMENTS = { '1x': null, '3x': 3, '10x': 10 };
 
@@ -326,7 +327,7 @@
     }
 
     function getEffectivePrice(product, rhythm) {
-        var eligible = product.is_guinguette && cartHasReductionEligible();
+        var eligible = product.is_guinguette && (cartHasReductionEligible() || hasReductionFromPurchase);
         var reducedKey = rhythm + '_reduc';
         if (eligible && product.prices[reducedKey]) {
             return { price: product.prices[reducedKey], reduced: true, normalPrice: product.prices[rhythm] };
@@ -626,6 +627,7 @@
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 hasMembership = data.has_membership;
+                hasReductionFromPurchase = data.has_reduction || false;
                 membershipChecked = true;
 
                 if (hasMembership) {
@@ -637,7 +639,7 @@
                 }
 
                 sectionAdhDon.style.display = '';
-                updateCart();
+                updateAllCards();
             });
     }
 

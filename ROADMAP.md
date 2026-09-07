@@ -33,6 +33,58 @@
 - Retourner `204 No Content` pour les événements ignorés (type non traité)
 - Retourner `200` avec un body JSON décrivant le traitement effectué pour les événements traités
 
+**Idempotence du webhook :**
+- Stripe peut renvoyer le même événement plusieurs fois (retries, network issues)
+- Les `Purchase` sont dupliqués à chaque replay car `recordPurchases` ne vérifie pas si le `checkoutSessionId` existe déjà
+- Ajouter un check de doublon par `checkoutSessionId` dans `PurchaseRepository` avant insertion
+- Alternative : tracker les event IDs déjà traités dans une table dédiée
+
+**Gestion d'erreur dans le webhook handler :**
+- `createSubscriptionScheduleIfNeeded` fait plusieurs appels API Stripe sans try/catch
+- Si un appel échoue → 500 → Stripe retry → les opérations déjà exécutées (purchases, memberships) sont rejouées
+- Encapsuler chaque étape dans un try/catch avec logging, et retourner 200 même en cas d'erreur partielle (ou rendre chaque étape idempotente)
+
+**Écouter `customer.subscription.deleted` :**
+- L'app crée des subscription schedules avec `end_behavior: cancel` mais n'écoute pas la fin de vie
+- Ajouter un handler pour logger la fin d'abonnement (monitoring, audit)
+
+### Pinning de la version API Stripe
+
+Le `StripeClient` est instancié sans version API explicite (`config/services.yaml`). L'app hérite de la version par défaut du SDK, qui peut changer silencieusement lors d'un `composer update`.
+
+```yaml
+Stripe\StripeClient:
+    arguments:
+        - api_key: '%env(STRIPE_SECRET_KEY)%'
+          stripe_version: '2025-04-30.basil'
+```
+
+### Migrer vers un Restricted API Key
+
+L'app utilise probablement un `sk_` (secret key full-access). Créer un Restricted API Key (`rk_`) avec les permissions minimales :
+- Checkout Sessions : write
+- Products, Prices : read
+- Subscriptions : read
+- Subscription Schedules : read + write
+
+Réduit le blast radius en cas de compromission de la clé.
+
+### `integration_identifier` sur les Checkout Sessions
+
+Passer `integration_identifier` à `checkout.sessions.create` pour tracker les sessions dans le Dashboard Stripe :
+
+```php
+$params['integration_identifier'] = 'opp_checkout_' . bin2hex(random_bytes(4));
+```
+
+### Cache des produits et prix Stripe
+
+La homepage fait N+1 appels API Stripe à chaque chargement : `products->all()` × 2 + `prices->all()` par produit (~14 appels pour 6 produits).
+
+- Mutualiser `loadProducts()` et `fetchProductsByCategory()` en un seul fetch
+- Ajouter un cache Symfony (`CacheInterface`) avec TTL de 5 minutes
+- Invalider le cache manuellement après `opp:products:create`
+
 ### Facture automatique pour les paiements one-off
 
 Pour les checkout sessions en mode `payment` (1x), activer la création automatique de facture Stripe afin que l'élève reçoive un reçu/facture par email :
@@ -130,6 +182,14 @@ Le passage au PaymentIntent nécessite de gérer les factures explicitement (Che
 - Configurer l'envoi automatique d'email par Stripe (`auto_advance: true`)
 - **Événement webhook à évaluer** : `invoice.paid` semble plus adapté que `payment_intent.succeeded` car il couvre aussi les subscriptions
 - Alternative : utiliser `invoice.payment_succeeded` pour un hook unifié one-off + recurring
+
+### Webhook : `async_payment_succeeded` / `async_payment_failed`
+
+Actuellement le webhook ne gère que `checkout.session.completed`. Si des méthodes de paiement asynchrones sont activées (virements, prélèvements SEPA…), le fulfillment peut être déclenché alors que le paiement n'est pas encore confirmé.
+
+- Écouter `checkout.session.async_payment_succeeded` et `checkout.session.async_payment_failed`
+- Conditionner le fulfillment à `payment_status !== 'unpaid'` dans `handleCheckoutCompleted`
+- Non critique tant que seule la CB est activée, mais requis dès l'ajout d'autres méthodes
 
 ### Étapes de migration
 

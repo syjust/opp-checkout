@@ -108,6 +108,7 @@
                 {% if has_guinguette %}
                         </div>
                 {% endif %}
+                <p class="text-muted small mt-2 mb-0" id="installment-footnote" style="display:none;"></p>
             </div>
 
             {# ===================== Cart sidebar ===================== #}
@@ -350,7 +351,7 @@
     }
 
     function getPeriodSuffix() {
-        return currentRhythm === '3x' ? ' / trim.' : ' / mois';
+        return currentRhythm === '3x' ? ' / trim.*' : ' / mois*';
     }
 
     function getAdhesionAmountCents() {
@@ -545,7 +546,7 @@
                 totalLabel.textContent = "Total aujourd'hui";
                 todayEl.textContent = formatEuros(firstPayment);
 
-                scheduleRowText.textContent = 'puis ' + (inst - 1) + ' paiements de ' + formatEuros(perPaymentCourses) + (currentRhythm === '3x' ? ' / trimestre' : ' / mois');
+                scheduleRowText.textContent = 'puis ' + (inst - 1) + ' paiements de ' + formatEuros(perPaymentCourses) + (currentRhythm === '3x' ? ' / trimestre*' : ' / mois*');
                 scheduleRow.style.display = '';
 
                 if (totalNormalAnnual > totalAnnual) {
@@ -575,7 +576,7 @@
             if (inst) {
                 paymentLabel.innerHTML = '1<sup>er</sup> paiement aujourd\'hui';
                 paymentAmount.textContent = formatEuros(firstPayment);
-                scheduleText.textContent = 'puis ' + (inst - 1) + ' paiements de ' + formatEuros(perPaymentCourses) + (currentRhythm === '3x' ? ' / trimestre' : ' / mois');
+                scheduleText.textContent = 'puis ' + (inst - 1) + ' paiements de ' + formatEuros(perPaymentCourses) + (currentRhythm === '3x' ? ' / trimestre*' : ' / mois*');
                 scheduleEl.style.display = '';
             } else {
                 paymentLabel.textContent = 'Total';
@@ -604,6 +605,17 @@
             if (product) updateCardDisplay(card, product);
         });
         updateCart();
+
+        var footnote = document.getElementById('installment-footnote');
+        if (currentRhythm === '10x') {
+            footnote.textContent = '* Tarif mensuel sur 10 mensualités (septembre à juin).';
+            footnote.style.display = '';
+        } else if (currentRhythm === '3x') {
+            footnote.textContent = '* Tarif trimestriel sur 3 échéances.';
+            footnote.style.display = '';
+        } else {
+            footnote.style.display = 'none';
+        }
     }
 
     document.querySelectorAll('.course-card[data-slug]').forEach(function(card) {

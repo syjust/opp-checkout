@@ -64,9 +64,6 @@ class CheckoutController extends AbstractController
         if (empty($priceIds) && $singlePriceId) {
             $priceIds = [$singlePriceId];
         }
-        if (empty($priceIds) || !$email) {
-            return $this->redirectToRoute('checkout_index');
-        }
 
         $adhesionAmount = max(0, (int) $request->request->get('adhesion_amount', 0));
         $adhesionAmountCents = $adhesionAmount * 100;
@@ -78,6 +75,10 @@ class CheckoutController extends AbstractController
             $donationAmount = max(0, (int) $donationPreset);
         }
         $donationAmountCents = $donationAmount * 100;
+
+        if (!$email || (empty($priceIds) && $adhesionAmountCents === 0 && $donationAmountCents === 0)) {
+            return $this->redirectToRoute('checkout_index');
+        }
 
         $session = $this->checkoutService->createCheckoutSession(
             email: mb_strtolower($email),

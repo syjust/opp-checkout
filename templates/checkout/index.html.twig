@@ -137,11 +137,18 @@
                             <div id="cart-totals" style="display:none;">
                                 <div class="border-top pt-2">
                                     <div class="d-flex justify-content-between align-items-baseline">
-                                        <span class="fw-bold">Total annuel</span>
-                                        <div class="text-end">
+                                        <span class="fw-bold" id="cart-total-label">Total aujourd'hui</span>
+                                        <strong id="cart-total-today"></strong>
+                                    </div>
+                                    <div class="text-muted" id="cart-total-schedule" style="display:none;">
+                                        <small id="cart-total-schedule-text"></small>
+                                    </div>
+                                    <div class="text-muted" id="cart-total-annual-row" style="display:none;">
+                                        <small>
+                                            Total annuel
                                             <span class="price-struck" id="cart-annual-normal" style="display:none;"></span>
-                                            <strong id="cart-annual-total"></strong>
-                                        </div>
+                                            <span id="cart-annual-total"></span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
@@ -370,21 +377,25 @@
         var struckEl = card.querySelector('.guinguette-price-normal');
         var statusEl = card.querySelector('.reduction-status');
 
+        var inst = INSTALLMENTS[rhythm];
         if (eff.price) {
-            var annual = getAnnualAmount(eff);
-            priceEl.textContent = formatEuros(annual) + ' / an';
+            if (inst) {
+                priceEl.textContent = formatEuros(eff.price.amount) + getPeriodSuffix();
+            } else {
+                priceEl.textContent = formatEuros(eff.price.amount) + ' / an';
+            }
         } else {
             priceEl.textContent = '';
         }
 
         if (installmentEl) {
-            var inst = INSTALLMENTS[rhythm];
             if (eff.price && inst) {
-                var suffix = getPeriodSuffix();
+                var annual = getAnnualAmount(eff);
                 if (eff.reduced && eff.normalPrice) {
-                    installmentEl.innerHTML = '<span class="price-struck">' + formatEuros(eff.normalPrice.amount) + suffix + '</span> ' + formatEuros(eff.price.amount) + suffix;
+                    var normalAnnual = eff.normalPrice.amount * inst;
+                    installmentEl.innerHTML = '<span class="price-struck">' + formatEuros(normalAnnual) + ' / an</span> ' + formatEuros(annual) + ' / an';
                 } else {
-                    installmentEl.textContent = formatEuros(eff.price.amount) + suffix;
+                    installmentEl.textContent = formatEuros(annual) + ' / an';
                 }
             } else {
                 installmentEl.innerHTML = '';
@@ -394,8 +405,11 @@
         if (product.is_guinguette) {
             if (struckEl) {
                 if (eff.reduced && eff.normalPrice) {
-                    var normalAnnual = INSTALLMENTS[rhythm] ? eff.normalPrice.amount * INSTALLMENTS[rhythm] : eff.normalPrice.amount;
-                    struckEl.textContent = formatEuros(normalAnnual) + ' / an';
+                    if (inst) {
+                        struckEl.textContent = formatEuros(eff.normalPrice.amount) + getPeriodSuffix();
+                    } else {
+                        struckEl.textContent = formatEuros(eff.normalPrice.amount) + ' / an';
+                    }
                     struckEl.style.display = '';
                 } else {
                     struckEl.style.display = 'none';
@@ -468,8 +482,12 @@
 
             var li = document.createElement('li');
             li.className = 'list-group-item px-0 cart-line';
-            li.innerHTML = '<div class="d-flex justify-content-between"><span>' + product.name + '</span><strong class="text-nowrap ms-2">' + formatEuros(annual) + ' / an</strong></div>' +
-                (inst ? '<div class="text-end"><small class="text-muted">' + formatEuros(eff.price.amount) + suffix + '</small></div>' : '');
+            if (inst) {
+                li.innerHTML = '<div class="d-flex justify-content-between"><span>' + product.name + '</span><strong class="text-nowrap ms-2">' + formatEuros(eff.price.amount) + suffix + '</strong></div>' +
+                    '<div class="text-end"><small class="text-muted">' + formatEuros(annual) + ' / an</small></div>';
+            } else {
+                li.innerHTML = '<div class="d-flex justify-content-between"><span>' + product.name + '</span><strong class="text-nowrap ms-2">' + formatEuros(annual) + ' / an</strong></div>';
+            }
 
             cartItemsEl.appendChild(li);
             items.push({ slug: slug, priceId: eff.price.id });
@@ -504,15 +522,49 @@
         sectionPayment.style.display = (hasItems && membershipChecked) ? '' : 'none';
 
         if (hasItems) {
+            var perPaymentCourses = 0;
+            if (inst) {
+                for (var s in cart) {
+                    var pp = getProductBySlug(s);
+                    if (!pp) continue;
+                    var ee = getEffectivePrice(pp, currentRhythm);
+                    if (ee.price) perPaymentCourses += ee.price.amount;
+                }
+            }
+            var firstPayment = inst ? perPaymentCourses + adhesionCents + donCents : totalAnnual;
+
+            var totalLabel = document.getElementById('cart-total-label');
+            var todayEl = document.getElementById('cart-total-today');
+            var scheduleRow = document.getElementById('cart-total-schedule');
+            var scheduleRowText = document.getElementById('cart-total-schedule-text');
+            var annualRow = document.getElementById('cart-total-annual-row');
             var normalEl = document.getElementById('cart-annual-normal');
             var totalEl = document.getElementById('cart-annual-total');
-            if (totalNormalAnnual > totalAnnual) {
-                normalEl.textContent = formatEuros(totalNormalAnnual);
-                normalEl.style.display = '';
+
+            if (inst) {
+                totalLabel.textContent = "Total aujourd'hui";
+                todayEl.textContent = formatEuros(firstPayment);
+
+                scheduleRowText.textContent = 'puis ' + (inst - 1) + ' paiements de ' + formatEuros(perPaymentCourses) + (currentRhythm === '3x' ? ' / trimestre' : ' / mois');
+                scheduleRow.style.display = '';
+
+                if (totalNormalAnnual > totalAnnual) {
+                    normalEl.textContent = formatEuros(totalNormalAnnual);
+                    normalEl.style.display = '';
+                } else {
+                    normalEl.style.display = 'none';
+                }
                 totalEl.textContent = formatEuros(totalAnnual);
+                annualRow.style.display = '';
             } else {
-                normalEl.style.display = 'none';
-                totalEl.textContent = formatEuros(totalAnnual);
+                totalLabel.textContent = 'Total';
+                if (totalNormalAnnual > totalAnnual) {
+                    todayEl.innerHTML = '<span class="price-struck">' + formatEuros(totalNormalAnnual) + '</span> ' + formatEuros(totalAnnual);
+                } else {
+                    todayEl.textContent = formatEuros(totalAnnual);
+                }
+                scheduleRow.style.display = 'none';
+                annualRow.style.display = 'none';
             }
 
             var paymentLabel = document.getElementById('cart-payment-label');
@@ -521,14 +573,6 @@
             var scheduleText = document.getElementById('cart-schedule-text');
 
             if (inst) {
-                var perPaymentCourses = 0;
-                for (var slug in cart) {
-                    var p = getProductBySlug(slug);
-                    if (!p) continue;
-                    var e = getEffectivePrice(p, currentRhythm);
-                    if (e.price) perPaymentCourses += e.price.amount;
-                }
-                var firstPayment = perPaymentCourses + adhesionCents + donCents;
                 paymentLabel.innerHTML = '1<sup>er</sup> paiement aujourd\'hui';
                 paymentAmount.textContent = formatEuros(firstPayment);
                 scheduleText.textContent = 'puis ' + (inst - 1) + ' paiements de ' + formatEuros(perPaymentCourses) + (currentRhythm === '3x' ? ' / trimestre' : ' / mois');

@@ -45,7 +45,7 @@ jobs:
           SSH="ssh -i ~/.ssh/deploy_key ${USER}@${HOST}"
 
           # Ensure directory structure exists
-          $SSH "mkdir -p ${DEPLOY_PATH}/releases ${DEPLOY_PATH}/shared/var"
+          $SSH "mkdir -p ${DEPLOY_PATH}/releases ${DEPLOY_PATH}/shared/var/log"
 
           # Rsync build to releases/<tag>
           rsync -azP --delete \
@@ -68,16 +68,16 @@ jobs:
             # Install dependencies on server
             APP_ENV=prod composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 
-            # Symlink shared resources
+            # Symlink shared resources (granular: DB + logs shared, cache stays per-release)
             ln -sfn ../../.env.local .env.local
-            rm -rf var
-            ln -sfn ../../shared/var var
+            mkdir -p var/cache
+            ln -sfn ../../../shared/var/data.db var/data.db
+            ln -sfn ../../../shared/var/log var/log
 
             # Run migrations
             php bin/console doctrine:migrations:migrate --no-interaction
 
-            # Clear stale cache from shared var and warm up
-            php bin/console cache:clear --env=prod --no-warmup
+            # Warm up cache (writes to this release's local var/cache — no downtime)
             php bin/console cache:warmup --env=prod
 
             # Atomic symlink switch

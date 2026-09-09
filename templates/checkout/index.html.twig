@@ -319,6 +319,14 @@
         return val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
     }
 
+    function isValidEmail(email) {
+        if (!email) return false;
+        var input = document.createElement('input');
+        input.type = 'email';
+        input.value = email;
+        return input.validity.valid;
+    }
+
     function getProductBySlug(slug) {
         for (var i = 0; i < PRODUCTS.length; i++) {
             if (PRODUCTS[i].slug === slug) return PRODUCTS[i];
@@ -648,7 +656,7 @@
             var disabledEl = document.getElementById('checkout-disabled-unite');
             var adhesionEl = document.getElementById('adhesion-section-unite');
 
-            if (!email || !email.includes('@')) {
+            if (!email || !isValidEmail(email)) {
                 fieldsEl.style.display = 'none';
                 disabledEl.style.display = '';
                 return;
@@ -671,7 +679,7 @@
         var sectionAdhDon = document.getElementById('section-adhesion-don');
         var adhesionEl = document.getElementById('adhesion-section');
 
-        if (!email || !email.includes('@')) {
+        if (!email || !isValidEmail(email)) {
             sectionAdhDon.style.display = 'none';
             document.getElementById('section-payment').style.display = 'none';
             membershipChecked = false;

@@ -2,7 +2,7 @@
 
 > Les versions livrées sont documentées dans les [GitHub Releases](https://github.com/syjust/opp-checkout/releases).
 
-## v1.2.0 — CI, webhooks et abonnements
+## v1.3.0 — CI, webhooks et abonnements
 
 ### Amélioration CI/CD
 
@@ -10,10 +10,6 @@
 - Actuellement lancé une fois dans le job GitHub Actions, puis une seconde fois via SSH sur OVH
 - Rsync le `vendor/` buildé par la CI → supprimer le `composer install` côté OVH
 - Inclure `vendor/` dans le rsync (retirer l'exclusion implicite)
-
-**Exclure le dossier `tests/` du déploiement :**
-- Ajouter `--exclude='tests/'` au rsync
-- Ajouter `--exclude='phpunit.xml.dist'` et `--exclude='phpunit.dist.xml'`
 
 **Vérifier les migrations au déploiement :**
 - Ajouter une étape de vérification post-migration : `bin/console doctrine:migrations:status` et vérifier que toutes les migrations sont appliquées
@@ -48,17 +44,6 @@
 - L'app crée des subscription schedules avec `end_behavior: cancel` mais n'écoute pas la fin de vie
 - Ajouter un handler pour logger la fin d'abonnement (monitoring, audit)
 
-### Pinning de la version API Stripe
-
-Le `StripeClient` est instancié sans version API explicite (`config/services.yaml`). L'app hérite de la version par défaut du SDK, qui peut changer silencieusement lors d'un `composer update`.
-
-```yaml
-Stripe\StripeClient:
-    arguments:
-        - api_key: '%env(STRIPE_SECRET_KEY)%'
-          stripe_version: '2025-04-30.basil'
-```
-
 ### Migrer vers un Restricted API Key
 
 L'app utilise probablement un `sk_` (secret key full-access). Créer un Restricted API Key (`rk_`) avec les permissions minimales :
@@ -69,14 +54,6 @@ L'app utilise probablement un `sk_` (secret key full-access). Créer un Restrict
 
 Réduit le blast radius en cas de compromission de la clé.
 
-### `integration_identifier` sur les Checkout Sessions
-
-Passer `integration_identifier` à `checkout.sessions.create` pour tracker les sessions dans le Dashboard Stripe :
-
-```php
-$params['integration_identifier'] = 'opp_checkout_' . bin2hex(random_bytes(4));
-```
-
 ### Cache des produits et prix Stripe
 
 La homepage fait N+1 appels API Stripe à chaque chargement : `products->all()` × 2 + `prices->all()` par produit (~14 appels pour 6 produits).
@@ -84,17 +61,6 @@ La homepage fait N+1 appels API Stripe à chaque chargement : `products->all()` 
 - Mutualiser `loadProducts()` et `fetchProductsByCategory()` en un seul fetch
 - Ajouter un cache Symfony (`CacheInterface`) avec TTL de 5 minutes
 - Invalider le cache manuellement après `opp:products:create`
-
-### Facture automatique pour les paiements one-off
-
-Pour les checkout sessions en mode `payment` (1x), activer la création automatique de facture Stripe afin que l'élève reçoive un reçu/facture par email :
-
-```php
-$params['invoice_creation'] = ['enabled' => true];
-```
-
-- Uniquement en mode `payment` (les subscriptions génèrent déjà des invoices)
-- À valider avec Valérie : un reçu de paiement pourrait suffire sans facture formelle
 
 ### Choix de la date de renouvellement
 
@@ -104,46 +70,6 @@ Permettre à l'élève de choisir sa date de prélèvement mensuel (ex : le 15 d
 - Passer le `billing_cycle_anchor` à Stripe lors de la création du subscription_schedule
 - Adapter le calcul des phases du schedule en conséquence
 - Premier paiement au prorata ou à la prochaine échéance selon le choix
-
-### Supprimer la dépendance Stimulus + Turbo
-
-L'app embarque `symfony/stimulus-bundle` et `symfony/ux-turbo` via AssetMapper, mais ne les utilise pas réellement :
-- `hello_controller.js` est le scaffold par défaut, non référencé dans les templates
-- `csrf_protection_controller.js` est un fichier généré qui intercepte les événements Turbo pour le CSRF, mais l'app n'utilise ni Turbo Drive, ni `<turbo-frame>`, ni `<turbo-stream>`
-- Les templates n'ont aucun attribut `data-controller`, `data-action` ou `data-turbo`
-- Tout le JS du checkout est en vanilla JS inline dans `index.html.twig`
-
-**À supprimer :**
-- `composer remove symfony/stimulus-bundle symfony/ux-turbo`
-- Supprimer `assets/stimulus_bootstrap.js`, `assets/controllers/hello_controller.js`, `assets/controllers/csrf_protection_controller.js`, `assets/controllers.json`
-- Retirer l'import `./stimulus_bootstrap.js` de `assets/app.js`
-- Nettoyer les entrées `@hotwired/stimulus`, `@symfony/stimulus-bundle`, `@hotwired/turbo` de `importmap.php`
-
-**Risque :** aucun — la fonctionnalité de l'app n'est pas impactée, le formulaire checkout utilise un `form.submit()` standard.
-
-### Crédits JustDevOps dans le footer
-
-Ajouter un lien discret dans le footer vers [JustDevOps](https://jdo.li/in) (LinkedIn de Sylvain) :
-
-```html
-<small>Développé par <a href="https://jdo.li/in" target="_blank" rel="noopener">JustDevOps</a></small>
-```
-
-Modifier `templates/base.html.twig`, ligne footer existante.
-
----
-
-## v1.3.0 — Adhésion & Don standalone
-
-### Onglet "Adhésion & Don"
-
-Ajouter un 3e onglet pour les personnes qui veulent soutenir l'association sans s'inscrire à un cours :
-
-- Nouvel onglet "Soutenir l'OPP" (après "Cours à l'unité")
-- Formulaire simplifié : email → adhésion (prix libre, obligatoire) + don (optionnel) → paiement
-- Checkout en mode `payment` (one-off), pas de subscription
-- Réutiliser la logique de membership check existante (pas d'adhésion en doublon)
-- Facturer via Stripe Checkout (ou inline, cf. v2.0)
 
 ---
 

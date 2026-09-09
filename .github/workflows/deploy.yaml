@@ -54,6 +54,9 @@ jobs:
             --exclude='var/' \
             --exclude='vendor/' \
             --exclude='node_modules/' \
+            --exclude='tests/' \
+            --exclude='phpunit.xml.dist' \
+            --exclude='phpunit.dist.xml' \
             -e "ssh -i ~/.ssh/deploy_key" \
             ./ "${USER}@${HOST}:${DEPLOY_PATH}/releases/${TAG}/"
 

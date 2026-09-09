@@ -192,6 +192,8 @@ class StripeCheckoutService
             ],
         ];
 
+        $params['integration_identifier'] = 'opp_checkout';
+
         $installments = self::INSTALLMENTS[$rhythm] ?? null;
 
         if ($installments !== null) {
@@ -201,6 +203,7 @@ class StripeCheckoutService
             ];
         } else {
             $params['mode'] = 'payment';
+            $params['invoice_creation'] = ['enabled' => true];
         }
 
         return $this->stripeClient->checkout->sessions->create($params);

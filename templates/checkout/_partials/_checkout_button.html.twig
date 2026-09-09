@@ -1,0 +1,3 @@
+{# id: button HTML id, disabled: bool (default false) #}
+<button type="{{ disabled|default(false) ? 'button' : 'submit' }}" class="btn btn-primary w-100 btn-lg" id="{{ id }}" {{ disabled|default(false) ? 'disabled' : '' }}>Passer au paiement</button>
+<p class="text-muted text-center mt-2 mb-0"><small>{{ disabled|default(false) ? 'Saisissez votre email pour continuer' : 'Paiement sécurisé par Stripe' }}</small></p>

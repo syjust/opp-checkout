@@ -1,0 +1,22 @@
+{# suffix: string for unique IDs, school_year: string #}
+<div id="adhesion-section{{ suffix }}"></div>
+
+<div class="mb-3">
+    <label class="form-label fw-bold">Don à l'OPP <small class="text-muted fw-normal">(optionnel)</small></label>
+    <div class="don-options btn-group w-100 mb-2" role="group">
+        <input type="radio" class="btn-check" name="donation_preset" id="don{{ suffix }}-0" value="0" autocomplete="off" checked>
+        <label class="btn btn-outline-secondary btn-sm" for="don{{ suffix }}-0">Aucun</label>
+        <input type="radio" class="btn-check" name="donation_preset" id="don{{ suffix }}-5" value="5" autocomplete="off">
+        <label class="btn btn-outline-secondary btn-sm" for="don{{ suffix }}-5">5 €</label>
+        <input type="radio" class="btn-check" name="donation_preset" id="don{{ suffix }}-10" value="10" autocomplete="off">
+        <label class="btn btn-outline-secondary btn-sm" for="don{{ suffix }}-10">10 €</label>
+        <input type="radio" class="btn-check" name="donation_preset" id="don{{ suffix }}-20" value="20" autocomplete="off">
+        <label class="btn btn-outline-secondary btn-sm" for="don{{ suffix }}-20">20 €</label>
+        <input type="radio" class="btn-check" name="donation_preset" id="don{{ suffix }}-custom" value="custom" autocomplete="off">
+        <label class="btn btn-outline-secondary btn-sm" for="don{{ suffix }}-custom">Autre</label>
+    </div>
+    <div class="input-group" style="max-width: 200px; display: none;" id="custom-donation-group{{ suffix }}">
+        <input type="number" class="form-control" name="donation_custom_amount" min="1" step="1" placeholder="Montant">
+        <span class="input-group-text">€</span>
+    </div>
+</div>

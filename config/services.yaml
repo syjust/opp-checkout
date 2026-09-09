@@ -21,4 +21,6 @@ services:
         resource: '../src/'
 
     Stripe\StripeClient:
-        arguments: ['%env(STRIPE_SECRET_KEY)%']
+        arguments:
+            - api_key: '%env(STRIPE_SECRET_KEY)%'
+              stripe_version: '2026-08-26.dahlia'

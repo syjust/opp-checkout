@@ -14,6 +14,15 @@
     .don-options .btn-check:checked + .btn { background-color: #0d6efd; color: #fff; }
     .opp-tabs-bar { background: #fff; border-bottom: 1px solid #dee2e6; }
     .opp-tabs-bar .nav-tabs { border-bottom: none; }
+    @media (max-width: 575.98px) {
+        .opp-tabs-bar .nav-tabs { display: flex; gap: 0.3rem; padding: 0.45rem 0; flex-wrap: nowrap; border-bottom: none; }
+        .opp-tabs-bar .nav-tabs .nav-item { margin-bottom: 0; }
+        .opp-tabs-bar .nav-tabs .nav-link { border: 1px solid #dee2e6; border-radius: 999px; padding: 0.3rem 0.7rem; font-size: 0.82rem; color: #6c757d; background: transparent; }
+        .opp-tabs-bar .nav-tabs .nav-link.active { background: #1a7a7a; border-color: #1a7a7a; color: #fff; }
+        .opp-tabs-bar .nav-tabs .nav-item.opp-tab-soutenir { margin-left: auto; }
+        .opp-tabs-bar .nav-tabs .nav-item.opp-tab-soutenir .nav-link { color: #e8912d; border-color: #e8912d; }
+        .opp-tabs-bar .nav-tabs .nav-item.opp-tab-soutenir .nav-link.active { background: #e8912d; border-color: #e8912d; color: #fff; }
+    }
     .sidebar-section-title { font-size: 0.85em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: #6c757d; }
 </style>
 {% endblock %}
@@ -23,15 +32,15 @@
     <div class="container">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-annee" type="button">Cours à l'année</button>
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-annee" type="button"><span class="d-none d-sm-inline">Cours à l'année</span><span class="d-sm-none">Cours annuels</span></button>
             </li>
             {% if products_unite is not empty %}
             <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-unite" type="button">Cours à l'unité</button>
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-unite" type="button"><span class="d-none d-sm-inline">Cours à l'unité</span><span class="d-sm-none">Cours individuels</span></button>
             </li>
             {% endif %}
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-soutien" type="button">Adhésion & Dons</button>
+            <li class="nav-item opp-tab-soutenir">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-soutien" type="button"><span class="d-none d-sm-inline">Adhésion & Dons</span><span class="d-sm-none">Soutenir</span></button>
             </li>
         </ul>
     </div>

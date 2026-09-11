@@ -1,20 +1,16 @@
 window.OPP = window.OPP || {};
 
 OPP.checkMembership = function(email, suffix) {
-    var fieldsEl = document.getElementById('checkout-fields' + suffix);
-    var disabledEl = document.getElementById('checkout-disabled' + suffix);
     var adhesionEl = document.getElementById('adhesion-section' + suffix);
+    var sectionAdhDon = document.getElementById('section-adhesion-don' + suffix);
+    var sectionPayment = document.getElementById('section-payment' + suffix);
 
     if (!OPP.isValidEmail(email)) {
+        if (sectionAdhDon) sectionAdhDon.style.display = 'none';
+        if (sectionPayment) sectionPayment.style.display = 'none';
         if (suffix === '') {
-            var sectionAdhDon = document.getElementById('section-adhesion-don');
-            sectionAdhDon.style.display = 'none';
-            document.getElementById('section-payment').style.display = 'none';
             OPP._membershipChecked = false;
             if (OPP.updateCart) OPP.updateCart();
-        } else {
-            if (fieldsEl) fieldsEl.style.display = 'none';
-            if (disabledEl) disabledEl.style.display = '';
         }
         return;
     }
@@ -29,23 +25,26 @@ OPP.checkMembership = function(email, suffix) {
                 adhesionHtml = '<div class="mb-3"><label class="form-label fw-bold">Adhésion ' + OPP._schoolYear + ' <span class="text-danger">*</span></label><div class="input-group" style="max-width:200px;"><input type="number" class="form-control" name="adhesion_amount" min="1" step="1" value="10" required><span class="input-group-text">€</span></div><div class="form-text">Prix libre, minimum 1 €. Obligatoire pour s\'inscrire.</div></div>';
             }
 
+            adhesionEl.innerHTML = adhesionHtml;
+            if (sectionAdhDon) sectionAdhDon.style.display = '';
+            if (sectionPayment) sectionPayment.style.display = '';
+
             if (suffix === '') {
                 OPP._hasMembership = data.has_membership;
                 OPP._hasReductionFromPurchase = data.has_reduction || false;
                 OPP._membershipChecked = true;
-
-                adhesionEl.innerHTML = adhesionHtml;
                 if (!data.has_membership) {
                     var adhInput = adhesionEl.querySelector('input[name="adhesion_amount"]');
                     if (adhInput && OPP.updateCart) adhInput.addEventListener('input', OPP.updateCart);
                 }
-
-                document.getElementById('section-adhesion-don').style.display = '';
                 if (OPP.updateAllCards) OPP.updateAllCards();
             } else {
-                adhesionEl.innerHTML = adhesionHtml;
-                if (fieldsEl) fieldsEl.style.display = '';
-                if (disabledEl) disabledEl.style.display = 'none';
+                var updateFn = OPP['updateTotal' + suffix.replace('-', '_')];
+                if (!data.has_membership) {
+                    var adhInput2 = adhesionEl.querySelector('input[name="adhesion_amount"]');
+                    if (adhInput2 && updateFn) adhInput2.addEventListener('input', updateFn);
+                }
+                if (updateFn) updateFn();
             }
         });
 };

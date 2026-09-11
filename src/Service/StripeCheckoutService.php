@@ -146,11 +146,13 @@ class StripeCheckoutService
         int $donationAmountCents,
         string $successUrl,
         string $cancelUrl,
+        array $quantities = [],
     ): Session {
         $lineItems = [];
 
         foreach ($priceIds as $priceId) {
-            $lineItems[] = ['price' => $priceId, 'quantity' => 1];
+            $qty = min(max(1, (int) ($quantities[$priceId] ?? 1)), 20);
+            $lineItems[] = ['price' => $priceId, 'quantity' => $qty];
         }
 
         if ($adhesionAmountCents > 0 && !$this->hasMembership($email)) {

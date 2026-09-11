@@ -76,6 +76,8 @@ class CheckoutController extends AbstractController
         }
         $donationAmountCents = $donationAmount * 100;
 
+        $quantities = $request->request->all('quantities');
+
         if (!$email || (empty($priceIds) && $adhesionAmountCents === 0 && $donationAmountCents === 0)) {
             return $this->redirectToRoute('checkout_index');
         }
@@ -88,6 +90,7 @@ class CheckoutController extends AbstractController
             donationAmountCents: $donationAmountCents,
             successUrl: $this->generateUrl('checkout_success', [], UrlGeneratorInterface::ABSOLUTE_URL),
             cancelUrl: $this->generateUrl('checkout_cancel', [], UrlGeneratorInterface::ABSOLUTE_URL),
+            quantities: $quantities,
         );
 
         return $this->redirect($session->url);

@@ -260,6 +260,92 @@ class StripeCheckoutServiceTest extends TestCase
         $this->assertSame('3', $capturedParams['subscription_data']['metadata']['opp_installments']);
     }
 
+    public function testCreateCheckoutSessionWithQuantities(): void
+    {
+        $collection = new Collection();
+        $collection->data = [];
+        $this->productService->method('all')->willReturn($collection);
+        $this->membershipRepo->method('hasMembershipForYear')->willReturn(true);
+
+        $capturedParams = null;
+        $this->stripeClient->checkout->sessions
+            ->method('create')
+            ->willReturnCallback(function ($params) use (&$capturedParams) {
+                $capturedParams = $params;
+                return Session::constructFrom(['id' => 'cs_test', 'url' => 'https://stripe.test/cs']);
+            });
+
+        $this->service->createCheckoutSession(
+            email: 'alice@example.com',
+            priceIds: ['price_unite_1'],
+            rhythm: '1x',
+            adhesionAmountCents: 0,
+            donationAmountCents: 0,
+            successUrl: 'https://example.com/success',
+            cancelUrl: 'https://example.com/cancel',
+            quantities: ['price_unite_1' => 5],
+        );
+
+        $this->assertSame(5, $capturedParams['line_items'][0]['quantity']);
+    }
+
+    public function testCreateCheckoutSessionQuantityCappedAt20(): void
+    {
+        $collection = new Collection();
+        $collection->data = [];
+        $this->productService->method('all')->willReturn($collection);
+        $this->membershipRepo->method('hasMembershipForYear')->willReturn(true);
+
+        $capturedParams = null;
+        $this->stripeClient->checkout->sessions
+            ->method('create')
+            ->willReturnCallback(function ($params) use (&$capturedParams) {
+                $capturedParams = $params;
+                return Session::constructFrom(['id' => 'cs_test', 'url' => 'https://stripe.test/cs']);
+            });
+
+        $this->service->createCheckoutSession(
+            email: 'alice@example.com',
+            priceIds: ['price_unite_1'],
+            rhythm: '1x',
+            adhesionAmountCents: 0,
+            donationAmountCents: 0,
+            successUrl: 'https://example.com/success',
+            cancelUrl: 'https://example.com/cancel',
+            quantities: ['price_unite_1' => 99],
+        );
+
+        $this->assertSame(20, $capturedParams['line_items'][0]['quantity']);
+    }
+
+    public function testCreateCheckoutSessionDefaultsQuantityTo1(): void
+    {
+        $collection = new Collection();
+        $collection->data = [];
+        $this->productService->method('all')->willReturn($collection);
+        $this->membershipRepo->method('hasMembershipForYear')->willReturn(true);
+
+        $capturedParams = null;
+        $this->stripeClient->checkout->sessions
+            ->method('create')
+            ->willReturnCallback(function ($params) use (&$capturedParams) {
+                $capturedParams = $params;
+                return Session::constructFrom(['id' => 'cs_test', 'url' => 'https://stripe.test/cs']);
+            });
+
+        $this->service->createCheckoutSession(
+            email: 'alice@example.com',
+            priceIds: ['price_cours_1x'],
+            rhythm: '1x',
+            adhesionAmountCents: 0,
+            donationAmountCents: 0,
+            successUrl: 'https://example.com/success',
+            cancelUrl: 'https://example.com/cancel',
+        );
+
+        $this->assertSame(1, $capturedParams['line_items'][0]['quantity']);
+    }
+
     public function testFetchProductsByCategoryWithSeasonFilter(): void
     {
         $product = Product::constructFrom([

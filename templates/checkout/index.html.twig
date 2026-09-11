@@ -207,24 +207,40 @@
             <div class="col-md-6">
                 <h4 class="mb-3">Cours à l'unité</h4>
 
-                {% for product in products_unite %}
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ product.name }}</h5>
-                        {% if product.description %}
-                            <p class="card-text text-muted">{{ product.description }}</p>
-                        {% endif %}
-                        {% if product.prices['1x'] is defined %}
-                            <div class="fw-bold fs-4 mb-0">{{ product.prices['1x'].amount|format_euros }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-
                 <form method="post" action="{{ path('checkout_create_session') }}" id="form-unite">
+                    <input type="hidden" name="rhythm" value="1x">
+
+                    {% for product in products_unite %}
                     {% if product.prices['1x'] is defined %}
-                        <input type="hidden" name="price_ids[]" value="{{ product.prices['1x'].id }}">
-                        <input type="hidden" name="rhythm" value="1x">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            {% if product.description %}
+                                <p class="card-text text-muted">{{ product.description }}</p>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="fw-bold fs-4 mb-0">{{ product.prices['1x'].amount|format_euros }}</div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="form-label mb-0 text-muted small" for="qty-{{ product.slug }}">Quantité</label>
+                                    <select class="form-select form-select-sm unite-qty-select" style="width: 5rem;"
+                                            id="qty-{{ product.slug }}"
+                                            name="quantities[{{ product.prices['1x'].id }}]"
+                                            data-price-id="{{ product.prices['1x'].id }}"
+                                            data-unit-price="{{ product.prices['1x'].amount }}">
+                                        {% for i in 1..20 %}
+                                            <option value="{{ i }}">{{ i }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="text-muted small mt-1 unite-subtotal" data-for="{{ product.slug }}">
+                                Sous-total : {{ product.prices['1x'].amount|format_euros }}
+                            </div>
+                            <input type="hidden" name="price_ids[]" value="{{ product.prices['1x'].id }}">
+                        </div>
+                    </div>
                     {% endif %}
+                    {% endfor %}
 
                     <div class="card">
                         <div class="card-body">
@@ -241,7 +257,6 @@
                         </div>
                     </div>
                 </form>
-                {% endfor %}
             </div>
         </div>
     </div>
@@ -306,6 +321,18 @@
     OPP.setupDonationPresets('#checkout-form', '', OPP.updateCart);
     OPP.setupDonationPresets('#form-unite', '-unite');
     OPP.setupDonationPresets('#form-soutien', '-soutien');
+
+    document.querySelectorAll('.unite-qty-select').forEach(function(select) {
+        select.addEventListener('change', function() {
+            var unitPrice = parseInt(select.dataset.unitPrice, 10);
+            var qty = parseInt(select.value, 10);
+            var slug = select.id.replace('qty-', '');
+            var subtotalEl = document.querySelector('.unite-subtotal[data-for="' + slug + '"]');
+            if (subtotalEl) {
+                subtotalEl.textContent = 'Sous-total : ' + OPP.formatEuros(unitPrice * qty);
+            }
+        });
+    });
 
     OPP.initTabs();
 })();

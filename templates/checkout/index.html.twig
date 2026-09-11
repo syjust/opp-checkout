@@ -244,16 +244,26 @@
 
                     <div class="card">
                         <div class="card-body">
+                            <div class="sidebar-section-title mb-2">1. Votre email</div>
                             {{ include('checkout/_partials/_email_input.html.twig', { suffix: '-unite' }) }}
+                        </div>
+                    </div>
 
-                            <div id="checkout-fields-unite" style="display:none;">
-                                {{ include('checkout/_partials/_adhesion_don.html.twig', { suffix: '-unite', school_year: school_year }) }}
-                                {{ include('checkout/_partials/_checkout_button.html.twig', { id: 'checkout-btn-unite' }) }}
-                            </div>
+                    <div class="card mt-3" id="section-adhesion-don-unite" style="display:none;">
+                        <div class="card-body">
+                            <div class="sidebar-section-title mb-2">2. Adhésion & Don</div>
+                            {{ include('checkout/_partials/_adhesion_don.html.twig', { suffix: '-unite', school_year: school_year }) }}
+                        </div>
+                    </div>
 
-                            <div id="checkout-disabled-unite">
-                                {{ include('checkout/_partials/_checkout_button.html.twig', { id: 'checkout-btn-unite-disabled', disabled: true }) }}
+                    <div class="card mt-3" id="section-payment-unite" style="display:none;">
+                        <div class="card-body">
+                            <div class="sidebar-section-title mb-2">3. Paiement</div>
+                            <div class="d-flex justify-content-between fw-bold mb-1">
+                                <span>Total</span>
+                                <span class="text-nowrap" id="unite-total"></span>
                             </div>
+                            {{ include('checkout/_partials/_checkout_button.html.twig', { id: 'checkout-btn-unite' }) }}
                         </div>
                     </div>
                 </form>
@@ -276,16 +286,26 @@
 
                     <div class="card">
                         <div class="card-body">
+                            <div class="sidebar-section-title mb-2">1. Votre email</div>
                             {{ include('checkout/_partials/_email_input.html.twig', { suffix: '-soutien' }) }}
+                        </div>
+                    </div>
 
-                            <div id="checkout-fields-soutien" style="display:none;">
-                                {{ include('checkout/_partials/_adhesion_don.html.twig', { suffix: '-soutien', school_year: school_year }) }}
-                                {{ include('checkout/_partials/_checkout_button.html.twig', { id: 'checkout-btn-soutien' }) }}
-                            </div>
+                    <div class="card mt-3" id="section-adhesion-don-soutien" style="display:none;">
+                        <div class="card-body">
+                            <div class="sidebar-section-title mb-2">2. Adhésion & Don</div>
+                            {{ include('checkout/_partials/_adhesion_don.html.twig', { suffix: '-soutien', school_year: school_year }) }}
+                        </div>
+                    </div>
 
-                            <div id="checkout-disabled-soutien">
-                                {{ include('checkout/_partials/_checkout_button.html.twig', { id: 'checkout-btn-soutien-disabled', disabled: true }) }}
+                    <div class="card mt-3" id="section-payment-soutien" style="display:none;">
+                        <div class="card-body">
+                            <div class="sidebar-section-title mb-2">3. Paiement</div>
+                            <div class="d-flex justify-content-between fw-bold mb-1">
+                                <span>Total</span>
+                                <span class="text-nowrap" id="soutien-total"></span>
                             </div>
+                            {{ include('checkout/_partials/_checkout_button.html.twig', { id: 'checkout-btn-soutien' }) }}
                         </div>
                     </div>
                 </form>
@@ -319,8 +339,43 @@
     OPP.setupEmailDebounce('email-soutien', '-soutien');
 
     OPP.setupDonationPresets('#checkout-form', '', OPP.updateCart);
-    OPP.setupDonationPresets('#form-unite', '-unite');
-    OPP.setupDonationPresets('#form-soutien', '-soutien');
+
+    function getFormAdhesionCents(formSelector) {
+        var el = document.querySelector(formSelector + ' input[name="adhesion_amount"]');
+        if (!el) return 0;
+        return Math.max(0, parseInt(el.value, 10) || 0) * 100;
+    }
+
+    function getFormDonCents(formSelector) {
+        var checked = document.querySelector(formSelector + ' input[name="donation_preset"]:checked');
+        if (!checked) return 0;
+        if (checked.value === 'custom') {
+            var custom = document.querySelector(formSelector + ' input[name="donation_custom_amount"]');
+            return Math.max(0, parseInt(custom ? custom.value : '0', 10) || 0) * 100;
+        }
+        return Math.max(0, parseInt(checked.value, 10) || 0) * 100;
+    }
+
+    function updateTotalUnite() {
+        var total = 0;
+        document.querySelectorAll('.unite-qty-select').forEach(function(select) {
+            var unitPrice = parseInt(select.dataset.unitPrice, 10);
+            var qty = parseInt(select.value, 10);
+            total += unitPrice * qty;
+        });
+        total += getFormAdhesionCents('#form-unite');
+        total += getFormDonCents('#form-unite');
+        var el = document.getElementById('unite-total');
+        if (el) el.textContent = OPP.formatEuros(total);
+    }
+    OPP.updateTotal_unite = updateTotalUnite;
+
+    function updateTotalSoutien() {
+        var total = getFormAdhesionCents('#form-soutien') + getFormDonCents('#form-soutien');
+        var el = document.getElementById('soutien-total');
+        if (el) el.textContent = OPP.formatEuros(total);
+    }
+    OPP.updateTotal_soutien = updateTotalSoutien;
 
     document.querySelectorAll('.unite-qty-select').forEach(function(select) {
         select.addEventListener('change', function() {
@@ -331,8 +386,12 @@
             if (subtotalEl) {
                 subtotalEl.textContent = 'Sous-total : ' + OPP.formatEuros(unitPrice * qty);
             }
+            updateTotalUnite();
         });
     });
+
+    OPP.setupDonationPresets('#form-unite', '-unite', updateTotalUnite);
+    OPP.setupDonationPresets('#form-soutien', '-soutien', updateTotalSoutien);
 
     OPP.initTabs();
 })();
